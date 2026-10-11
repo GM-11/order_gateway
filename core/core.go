@@ -83,9 +83,18 @@ type requestKey struct {
 	request ClientRequestID
 }
 
+type orderStage uint8
+
+const (
+	stageSentToCash orderStage = iota + 1
+	stageAccepted
+	stageUnknown
+)
+
 type pendingEntry struct {
 	conn   ConnID
 	sentAt time.Time
+	stage  orderStage
 }
 
 type Gateway struct {
@@ -108,7 +117,7 @@ func New(cash CashOwner, out Sender, now func() time.Time, submitTimeout time.Du
 
 func (g *Gateway) OnPlace(ctx context.Context, conn ConnID, req OrderRequest) {
 	key := requestKey{req.AccountID, req.ClientRequestID}
-	g.pending[key] = pendingEntry{conn: conn, sentAt: g.now()}
+	g.pending[key] = pendingEntry{conn: conn, sentAt: g.now(), stage: stageSentToCash}
 
 	ctx, cancel := context.WithTimeout(ctx, g.submitTimeout)
 	defer cancel()
@@ -116,10 +125,21 @@ func (g *Gateway) OnPlace(ctx context.Context, conn ConnID, req OrderRequest) {
 
 	switch {
 	case err != nil:
+		entry, ok := g.pending[key]
+		if ok {
+			entry.stage = stageUnknown
+			g.pending[key] = entry
+		}
 		return
+	case ack.Accepted:
+		entry, ok := g.pending[key]
+		if ok {
+			entry.stage = stageAccepted
+			g.pending[key] = entry
+		}
 	case !ack.Accepted:
 		delete(g.pending, key)
-		g.out.Send(conn, OutMsg{Kind: MsgRejected, ClientRequestID: req.ClientRequestID, Reason: ack.Reason})
+		g.out.Send(conn, OutMsg{Kind: MsgRejected, ClientRequestID: req.ClientRequestID, Reason: ack.Reason, ShortfallMinor: ack.ShortFallMinor})
 	}
 }
 
