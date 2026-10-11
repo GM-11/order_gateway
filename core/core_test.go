@@ -11,12 +11,16 @@ type fakeCash struct {
 	ack      Acknowledge
 	err      error
 	got      []OrderRequest
-	deadline bool // did the gateway give us a deadline?
+	deadline bool
+	onSubmit func()
 }
 
 func (f *fakeCash) Submit(ctx context.Context, r OrderRequest) (Acknowledge, error) {
 	f.got = append(f.got, r)
 	_, f.deadline = ctx.Deadline()
+	if f.onSubmit != nil {
+		f.onSubmit()
+	}
 	return f.ack, f.err
 }
 
@@ -98,6 +102,59 @@ func TestAcceptedThenEngineReplyDeliversAndDeletes(t *testing.T) {
 	}
 	if len(out.sent) != 1 || out.sent[0].conn != aliceConn || out.sent[0].msg.OrderID != 9001 {
 		t.Fatalf("Alice should get her order_id, got %+v", out.sent)
+	}
+}
+
+func TestEngineAnswerBeforeCashYes_NoZombie(t *testing.T) {
+	var gw *Gateway
+	cash := &fakeCash{ack: Acknowledge{Accepted: true}}
+	cash.onSubmit = func() {
+		gw.OnReply(EngineReply{AccountID: alice.AccountID, ClientRequestID: alice.ClientRequestID, OrderID: 9001})
+	}
+	gw, out := setup(cash)
+
+	gw.OnPlace(context.Background(), aliceConn, alice)
+
+	if len(gw.pending) != 0 {
+		t.Fatalf("early engine answer must not leave a pending note, got %d", len(gw.pending))
+	}
+	if len(out.sent) != 1 || out.sent[0].conn != aliceConn || out.sent[0].msg.Kind != MsgOrderResult || out.sent[0].msg.OrderID != 9001 {
+		t.Fatalf("Alice should get exactly one placed result, got %+v", out.sent)
+	}
+}
+
+func TestUnknownThenEngineAnswer_Delivers(t *testing.T) {
+	gw, out := setup(&fakeCash{err: ErrNoAnswer})
+	gw.OnPlace(context.Background(), aliceConn, alice)
+
+	key := requestKey{alice.AccountID, alice.ClientRequestID}
+	if entry, ok := gw.pending[key]; !ok || entry.stage != stageUnknown {
+		t.Fatalf("pending stage = %v, present = %v; want unknown", entry.stage, ok)
+	}
+	if len(out.sent) != 0 {
+		t.Fatalf("unknown outcome must not send a final message, got %+v", out.sent)
+	}
+
+	gw.OnReply(EngineReply{AccountID: alice.AccountID, ClientRequestID: alice.ClientRequestID, OrderID: 9001})
+
+	if len(gw.pending) != 0 {
+		t.Fatal("engine answer must delete the pending note")
+	}
+	if len(out.sent) != 1 || out.sent[0].conn != aliceConn || out.sent[0].msg.Kind != MsgOrderResult || out.sent[0].msg.OrderID != 9001 {
+		t.Fatalf("Alice should get exactly one placed, 9001 result, got %+v", out.sent)
+	}
+}
+
+func TestCashYes_MovesToAccepted(t *testing.T) {
+	gw, out := setup(&fakeCash{ack: Acknowledge{Accepted: true}})
+	gw.OnPlace(context.Background(), aliceConn, alice)
+
+	key := requestKey{alice.AccountID, alice.ClientRequestID}
+	if entry, ok := gw.pending[key]; !ok || entry.stage != stageAccepted {
+		t.Fatalf("pending stage = %v, present = %v; want accepted", entry.stage, ok)
+	}
+	if len(out.sent) != 0 {
+		t.Fatalf("cash acceptance is not final; got messages %+v", out.sent)
 	}
 }
 
