@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -103,6 +104,7 @@ type Gateway struct {
 	now           func() time.Time
 	submitTimeout time.Duration
 	pending       map[requestKey]pendingEntry
+	mu            sync.Mutex
 }
 
 func New(cash CashOwner, out Sender, now func() time.Time, submitTimeout time.Duration) *Gateway {
@@ -117,39 +119,50 @@ func New(cash CashOwner, out Sender, now func() time.Time, submitTimeout time.Du
 
 func (g *Gateway) OnPlace(ctx context.Context, conn ConnID, req OrderRequest) {
 	key := requestKey{req.AccountID, req.ClientRequestID}
-	g.pending[key] = pendingEntry{conn: conn, sentAt: g.now(), stage: stageSentToCash}
-
+	now := g.now()
+	g.mu.Lock()
+	g.pending[key] = pendingEntry{conn: conn, sentAt: now, stage: stageSentToCash}
+	g.mu.Unlock()
 	ctx, cancel := context.WithTimeout(ctx, g.submitTimeout)
 	defer cancel()
+
 	ack, err := g.cash.Submit(ctx, req)
 
 	switch {
 	case err != nil:
-		entry, ok := g.pending[key]
-		if ok {
+		g.mu.Lock()
+		if entry, ok := g.pending[key]; ok {
 			entry.stage = stageUnknown
 			g.pending[key] = entry
 		}
+		g.mu.Unlock()
 		return
 	case ack.Accepted:
-		entry, ok := g.pending[key]
-		if ok {
+		g.mu.Lock()
+		if entry, ok := g.pending[key]; ok {
 			entry.stage = stageAccepted
 			g.pending[key] = entry
 		}
+		g.mu.Unlock()
 	case !ack.Accepted:
+		g.mu.Lock()
 		delete(g.pending, key)
+		g.mu.Unlock()
 		g.out.Send(conn, OutMsg{Kind: MsgRejected, ClientRequestID: req.ClientRequestID, Reason: ack.Reason, ShortfallMinor: ack.ShortFallMinor})
 	}
 }
 
 func (g *Gateway) OnReply(r EngineReply) {
 	key := requestKey{r.AccountID, r.ClientRequestID}
+	g.mu.Lock()
 	e, ok := g.pending[key]
 	if !ok {
+		g.mu.Unlock()
 		return
 	}
 	delete(g.pending, key)
+	g.mu.Unlock()
+
 	msg := OutMsg{Kind: MsgOrderResult, ClientRequestID: r.ClientRequestID, OrderID: r.OrderID}
 	if r.Rejected {
 		msg.Reason = ReasonEngineRejected
