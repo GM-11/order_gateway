@@ -14,7 +14,6 @@ type Instrument struct {
 	Ticker    string        // what people type: "MOOG"
 	Partition uint32        // which sequencer lane owns it (the gateway doesn't use it, but checks it)
 	BandBps   int64         // circuit-breaker band, 1000 = 10%
-	TickMinor int64         // minimum price increment in minor units
 }
 
 type Table struct {
@@ -36,7 +35,6 @@ func Load(path string) (*Table, error) {
 			Ticker    string        `json:"ticker"`
 			Partition uint32        `json:"partition"`
 			BandBps   int64         `json:"band_bps"`
-			TickMinor int64         `json:"tick_minor"`
 		} `json:"instruments"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -51,42 +49,48 @@ func Load(path string) (*Table, error) {
 		return nil, err
 	}
 
+	if file.Version < 1 {
+		return nil, fmt.Errorf("version must be at least 1")
+	}
+	if file.Partitions < 1 {
+		return nil, fmt.Errorf("partitions must be at least 1")
+	}
+
 	t := &Table{
 		Version:  file.Version,
 		byTicker: make(map[string]Instrument, len(file.Instruments)),
 	}
 	seenIDs := make(map[core.SymbolID]struct{}, len(file.Instruments))
-	for _, input := range file.Instruments {
+	for i, input := range file.Instruments {
+		at := fmt.Sprintf("instruments[%d]", i)
 		if input.ID == 0 {
-			return nil, fmt.Errorf("instrument id must not be 0")
+			return nil, fmt.Errorf("%s: id must not be 0", at)
 		}
 		if _, exists := seenIDs[input.ID]; exists {
-			return nil, fmt.Errorf("duplicate instrument id %d", input.ID)
+			return nil, fmt.Errorf("%s: duplicate id %d", at, input.ID)
 		}
 		seenIDs[input.ID] = struct{}{}
 
 		if len(input.Ticker) < 1 || len(input.Ticker) > 12 || input.Ticker[0] < 'A' || input.Ticker[0] > 'Z' {
-			return nil, fmt.Errorf("invalid ticker %q", input.Ticker)
+			return nil, fmt.Errorf("%s: invalid ticker %q", at, input.Ticker)
 		}
-		for i := 0; i < len(input.Ticker); i++ {
-			c := input.Ticker[i]
+		for j := 0; j < len(input.Ticker); j++ {
+			c := input.Ticker[j]
 			if !((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
-				return nil, fmt.Errorf("invalid ticker %q", input.Ticker)
+				return nil, fmt.Errorf("%s: invalid ticker %q", at, input.Ticker)
 			}
 		}
 		if _, exists := t.byTicker[input.Ticker]; exists {
-			return nil, fmt.Errorf("duplicate ticker %q", input.Ticker)
+			return nil, fmt.Errorf("%s: duplicate ticker %q", at, input.Ticker)
 		}
 		if input.Partition >= file.Partitions {
-			return nil, fmt.Errorf("partition %d is not less than partitions %d", input.Partition, file.Partitions)
+			return nil, fmt.Errorf("%s: partition %d is not less than partitions %d", at, input.Partition, file.Partitions)
 		}
 		if input.BandBps < 1 || input.BandBps > 9999 {
-			return nil, fmt.Errorf("band_bps must be between 1 and 9999")
+			return nil, fmt.Errorf("%s: band_bps must be between 1 and 9999", at)
 		}
-		if input.TickMinor < 1 {
-			return nil, fmt.Errorf("tick_minor must be at least 1")
-		}
-		inst := Instrument{ID: input.ID, Ticker: input.Ticker, Partition: input.Partition, BandBps: input.BandBps, TickMinor: input.TickMinor}
+
+		inst := Instrument{ID: input.ID, Ticker: input.Ticker, Partition: input.Partition, BandBps: input.BandBps}
 		t.byTicker[inst.Ticker] = inst
 	}
 	return t, nil
