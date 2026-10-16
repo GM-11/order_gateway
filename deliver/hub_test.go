@@ -41,7 +41,7 @@ func TestSendNeverBlocksAndSlowUserIsDropped(t *testing.T) {
 	h.Add(1, alice)
 
 	start := time.Now()
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		h.Send(1, core.OutMsg{Kind: core.MsgOrderResult})
 	}
 	if time.Since(start) > 50*time.Millisecond {
@@ -60,7 +60,7 @@ func TestSlowUserDoesNotDelayOthers(t *testing.T) {
 	bob := newFake(false)
 	h.Add(2, bob)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		h.Send(1, core.OutMsg{Kind: core.MsgOrderResult})
 	}
 	h.Send(2, core.OutMsg{Kind: core.MsgOrderResult, ClientRequestID: 7})
