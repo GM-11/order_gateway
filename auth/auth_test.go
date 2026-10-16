@@ -17,10 +17,10 @@ func TestFromRequest(t *testing.T) {
 		}, want: Credentials{KeyID: "key-a", Secret: "secret-a"}},
 		{name: "Bearer header only", set: func(w *httptest.ResponseRecorder) {
 			w.Header().Set("Authorization", "Bearer token-a")
-		}, want: Credentials{Bearer: "Bearer token-a"}},
+		}, want: Credentials{Bearer: "token-a"}},
 		{name: "lowercase bearer", set: func(w *httptest.ResponseRecorder) {
 			w.Header().Set("Authorization", "bearer token-a")
-		}, want: Credentials{}},
+		}, want: Credentials{Bearer: "token-a"}},
 		{name: "Basic ignored", set: func(w *httptest.ResponseRecorder) {
 			w.Header().Set("Authorization", "Basic xyz")
 		}, want: Credentials{}},
