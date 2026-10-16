@@ -17,9 +17,26 @@ type (
 
 type Side uint8
 
+type Result struct {
+	Outcome        Outcome
+	OrderID        OrderID
+	Reason         RejectReason
+	ShortfallMinor int64
+}
+
+var ErrDuplicateInFlight = errors.New("same client_order_id is still in flight")
+
 const (
 	Buy Side = iota + 1
 	Sell
+)
+
+type Outcome uint8
+
+const (
+	OutcomeCashRejected Outcome = iota + 1
+	OutcomePlaced
+	OutcomeEngineRejected
 )
 
 type OrderRequest struct {
@@ -47,7 +64,7 @@ type Acknowledge struct {
 	ShortFallMinor int64
 }
 
-var ErrNoAnswer = errors.New("cash owner: no answer, outcome unknown")
+var ErrNoAnswer = errors.New("no answer before deadline, outcome unknown")
 
 type CashOwner interface {
 	Submit(ctx context.Context, req OrderRequest) (Acknowledge, error)
@@ -84,88 +101,86 @@ type requestKey struct {
 	request ClientOrderID
 }
 
-type orderStage uint8
-
-const (
-	stageSentToCash orderStage = iota + 1
-	stageAccepted
-	stageUnknown
-)
-
 type pendingEntry struct {
-	conn   ConnID
-	sentAt time.Time
-	stage  orderStage
+	mailbox chan Result
+	sentAt  time.Time
 }
 
 type Gateway struct {
-	cash          CashOwner
-	out           Sender
-	now           func() time.Time
-	submitTimeout time.Duration
-	pending       map[requestKey]pendingEntry
-	mu            sync.Mutex
+	cash    CashOwner
+	now     func() time.Time
+	timeout time.Duration
+	pending map[requestKey]pendingEntry
+	mu      sync.Mutex
 }
 
-func New(cash CashOwner, out Sender, now func() time.Time, submitTimeout time.Duration) *Gateway {
+func New(cash CashOwner, now func() time.Time, timeout time.Duration) *Gateway {
 	return &Gateway{
-		cash:          cash,
-		out:           out,
-		now:           now,
-		submitTimeout: submitTimeout,
-		pending:       make(map[requestKey]pendingEntry),
+		cash:    cash,
+		now:     now,
+		timeout: timeout,
+		pending: make(map[requestKey]pendingEntry),
 	}
 }
 
-func (g *Gateway) OnPlace(ctx context.Context, conn ConnID, req OrderRequest) {
+func (g *Gateway) Place(ctx context.Context, req OrderRequest) (Result, error) {
 	key := requestKey{req.AccountID, req.ClientOrderID}
+	mailbox := make(chan Result, 1)
 	now := g.now()
 	g.mu.Lock()
-	g.pending[key] = pendingEntry{conn: conn, sentAt: now, stage: stageSentToCash}
+	if _, busy := g.pending[key]; busy {
+		g.mu.Unlock()
+		return Result{}, ErrDuplicateInFlight
+	}
+	g.pending[key] = pendingEntry{mailbox: mailbox, sentAt: now}
 	g.mu.Unlock()
-	ctx, cancel := context.WithTimeout(ctx, g.submitTimeout)
+
+	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 
 	ack, err := g.cash.Submit(ctx, req)
 
 	switch {
 	case err != nil:
-		g.mu.Lock()
-		if entry, ok := g.pending[key]; ok {
-			entry.stage = stageUnknown
-			g.pending[key] = entry
-		}
-		g.mu.Unlock()
-		return
-	case ack.Accepted:
-		g.mu.Lock()
-		if entry, ok := g.pending[key]; ok {
-			entry.stage = stageAccepted
-			g.pending[key] = entry
-		}
-		g.mu.Unlock()
+		g.forget(key)
+		return Result{}, ErrNoAnswer
+
 	case !ack.Accepted:
-		g.mu.Lock()
-		delete(g.pending, key)
-		g.mu.Unlock()
-		g.out.Send(conn, OutMsg{Kind: MsgRejected, ClientOrderID: req.ClientOrderID, Reason: ack.Reason, ShortfallMinor: ack.ShortFallMinor})
+		g.forget(key)
+		return Result{Outcome: OutcomeCashRejected, Reason: ack.Reason, ShortfallMinor: ack.ShortFallMinor}, nil
 	}
+
+	select {
+	case r := <-mailbox:
+		return r, nil
+	case <-ctx.Done():
+		g.forget(key)
+		return Result{}, ErrNoAnswer
+	}
+}
+
+func (g *Gateway) forget(key requestKey) {
+	g.mu.Lock()
+	delete(g.pending, key) // deleting a missing key is a no-op in Go
+	g.mu.Unlock()
 }
 
 func (g *Gateway) OnReply(r EngineReply) {
 	key := requestKey{r.AccountID, r.ClientOrderID}
+
 	g.mu.Lock()
 	e, ok := g.pending[key]
+	if ok {
+		delete(g.pending, key)
+	}
+	g.mu.Unlock()
 	if !ok {
-		g.mu.Unlock()
 		return
 	}
-	delete(g.pending, key)
-	g.mu.Unlock()
 
-	msg := OutMsg{Kind: MsgOrderResult, ClientOrderID: r.ClientOrderID, OrderID: r.OrderID}
+	res := Result{Outcome: OutcomePlaced, OrderID: r.OrderID}
 	if r.Rejected {
-		msg.Reason = ReasonEngineRejected
+		res.Outcome = OutcomeEngineRejected
 	}
-	g.out.Send(e.conn, msg)
+	e.mailbox <- res
 }
