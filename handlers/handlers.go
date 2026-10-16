@@ -25,9 +25,10 @@ type Symbols interface {
 }
 
 type Orders struct {
-	Auth    auth.Verifier
-	Symbols Symbols
-	Placer  Placer
+	Auth     auth.Verifier
+	Symbols  Symbols
+	Placer   Placer
+	FeedLive func() bool
 }
 
 var _ http.Handler = (*Orders)(nil)
@@ -72,6 +73,12 @@ func (h *Orders) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	case err != nil: // no credentials or bad ones: same answer, so we don't reveal which
 		writeJSON(w, http.StatusUnauthorized, errorResponse{Error: "unauthorized"})
+		return
+	}
+
+	if h.FeedLive != nil && !h.FeedLive() {
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: "engine_unavailable",
+			Message: "order was NOT placed; safe to retry"})
 		return
 	}
 
@@ -204,7 +211,6 @@ func (h *Orders) build(in placeOrderRequest, account core.AccountID) (core.Order
 		return none, invalid("qty", "must be a whole number above 0")
 	}
 
-	// ④ Who the order belongs to comes from the verified identity, never from the body.
 	return core.OrderRequest{
 		AccountID:     account,
 		ClientOrderID: core.ClientOrderID(in.ClientOrderID),
