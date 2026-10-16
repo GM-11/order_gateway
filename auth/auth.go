@@ -39,9 +39,10 @@ var (
 func FromRequest(r *http.Request) Credentials {
 	KeyID := r.Header.Get("API_KEY_ID")
 	Secret := r.Header.Get("API_SECRET")
-	Bearer := r.Header.Get("Authorization")
-	if !strings.HasPrefix(Bearer, "Bearer ") {
-		Bearer = ""
+	h := r.Header.Get("Authorization")
+	bearer := ""
+	if len(h) > 7 && strings.EqualFold(h[:7], "Bearer ") {
+		bearer = h[7:]
 	}
-	return Credentials{KeyID: KeyID, Secret: Secret, Bearer: Bearer}
+	return Credentials{KeyID: KeyID, Secret: Secret, Bearer: bearer}
 }
