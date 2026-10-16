@@ -7,7 +7,7 @@ import (
 )
 
 func TestLoad(t *testing.T) {
-	const valid = `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"MOOG","partition":0,"band_bps":1000,"tick_minor":5}]}`
+	const valid = `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"MOOG","partition":0,"band_bps":1000}]}`
 
 	tests := []struct {
 		name    string
@@ -16,11 +16,12 @@ func TestLoad(t *testing.T) {
 	}{
 		{name: "valid file", content: valid},
 		{name: "unknown field", content: `{"version":1,"partitions":2,"unknown":true,"instruments":[]}`, wantErr: true},
-		{name: "duplicate id", content: `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"MOOG","partition":0,"band_bps":1000,"tick_minor":5},{"id":1,"ticker":"GOOG","partition":1,"band_bps":1000,"tick_minor":5}]}`, wantErr: true},
-		{name: "duplicate ticker", content: `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"MOOG","partition":0,"band_bps":1000,"tick_minor":5},{"id":2,"ticker":"MOOG","partition":1,"band_bps":1000,"tick_minor":5}]}`, wantErr: true},
-		{name: "lowercase ticker", content: `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"moog","partition":0,"band_bps":1000,"tick_minor":5}]}`, wantErr: true},
-		{name: "partition out of range", content: `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"MOOG","partition":2,"band_bps":1000,"tick_minor":5}]}`, wantErr: true},
-		{name: "zero tick", content: `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"MOOG","partition":0,"band_bps":1000,"tick_minor":0}]}`, wantErr: true},
+		{name: "version zero", content: `{"version":0,"partitions":2,"instruments":[]}`, wantErr: true},
+		{name: "partitions zero", content: `{"version":1,"partitions":0,"instruments":[]}`, wantErr: true},
+		{name: "duplicate id", content: `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"MOOG","partition":0,"band_bps":1000},{"id":1,"ticker":"GOOG","partition":1,"band_bps":1000}]}`, wantErr: true},
+		{name: "duplicate ticker", content: `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"MOOG","partition":0,"band_bps":1000},{"id":2,"ticker":"MOOG","partition":1,"band_bps":1000}]}`, wantErr: true},
+		{name: "lowercase ticker", content: `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"moog","partition":0,"band_bps":1000}]}`, wantErr: true},
+		{name: "partition out of range", content: `{"version":1,"partitions":2,"instruments":[{"id":1,"ticker":"MOOG","partition":2,"band_bps":1000}]}`, wantErr: true},
 	}
 
 	for _, tt := range tests {
@@ -45,8 +46,8 @@ func TestLoad(t *testing.T) {
 			if !ok {
 				t.Fatal(`Lookup("MOOG") returned false, want true`)
 			}
-			if inst.ID != 1 || inst.TickMinor != 5 {
-				t.Errorf(`Lookup("MOOG") = {ID: %d, TickMinor: %d}, want {ID: 1, TickMinor: 5}`, inst.ID, inst.TickMinor)
+			if inst.ID != 1 {
+				t.Errorf(`Lookup("MOOG").ID = %d, want 1`, inst.ID)
 			}
 			if _, ok := table.Lookup("GOOGL"); ok {
 				t.Error(`Lookup("GOOGL") returned true, want false`)
