@@ -74,12 +74,12 @@ func TestCashOwnerSubmitTranslatesFields(t *testing.T) {
 	srv := &fakeCashServer{ack: &pb.PlaceOrderAck{Accepted: true}}
 	client := dial(t, srv)
 	req := core.OrderRequest{
-		AccountID:       12,
-		ClientRequestID: 34,
-		Symbol:          56,
-		Side:            core.Sell,
-		PriceMinor:      7800,
-		Qty:             9,
+		AccountID:     12,
+		ClientOrderID: "c-34",
+		Symbol:        56,
+		Side:          core.Sell,
+		PriceMinor:    7800,
+		Qty:           9,
 	}
 	ack, err := client.Submit(context.Background(), req)
 	if err != nil {
@@ -92,7 +92,7 @@ func TestCashOwnerSubmitTranslatesFields(t *testing.T) {
 		t.Fatalf("server got %d requests, want 1", len(srv.got))
 	}
 	got := srv.got[0]
-	if got.AccountId != 12 || got.ClientRequestId != 34 || got.Symbol != 56 || got.Side != pb.Side_SIDE_SELL || got.PriceMinor != 7800 || got.Quantity != 9 || got.GatewayId != "gw-1" {
+	if got.AccountId != 12 || got.ClientOrderId != "c-34" || got.Symbol != 56 || got.Side != pb.Side_SIDE_SELL || got.PriceMinor != 7800 || got.Quantity != 9 || got.GatewayId != "gw-1" {
 		t.Fatalf("server received %+v, fields not translated as expected", got)
 	}
 }

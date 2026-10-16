@@ -8,11 +8,11 @@ import (
 )
 
 type (
-	AccountID       uint64
-	ClientRequestID uint64
-	ConnID          uint64
-	SymbolID        uint32
-	OrderID         uint64
+	AccountID     uint64
+	ClientOrderID string
+	ConnID        uint64
+	SymbolID      uint32
+	OrderID       uint64
 )
 
 type Side uint8
@@ -23,12 +23,12 @@ const (
 )
 
 type OrderRequest struct {
-	AccountID       AccountID
-	ClientRequestID ClientRequestID
-	Symbol          SymbolID
-	Side            Side
-	PriceMinor      int64
-	Qty             int64
+	AccountID     AccountID
+	ClientOrderID ClientOrderID
+	Symbol        SymbolID
+	Side          Side
+	PriceMinor    int64
+	Qty           int64
 }
 
 type RejectReason uint8
@@ -61,11 +61,11 @@ const (
 )
 
 type OutMsg struct {
-	Kind            MsgKind
-	ClientRequestID ClientRequestID
-	OrderID         OrderID
-	Reason          RejectReason
-	ShortfallMinor  int64
+	Kind           MsgKind
+	ClientOrderID  ClientOrderID
+	OrderID        OrderID
+	Reason         RejectReason
+	ShortfallMinor int64
 }
 
 type Sender interface {
@@ -73,15 +73,15 @@ type Sender interface {
 }
 
 type EngineReply struct {
-	AccountID       AccountID
-	ClientRequestID ClientRequestID
-	OrderID         OrderID
-	Rejected        bool
+	AccountID     AccountID
+	ClientOrderID ClientOrderID
+	OrderID       OrderID
+	Rejected      bool
 }
 
 type requestKey struct {
 	account AccountID
-	request ClientRequestID
+	request ClientOrderID
 }
 
 type orderStage uint8
@@ -118,7 +118,7 @@ func New(cash CashOwner, out Sender, now func() time.Time, submitTimeout time.Du
 }
 
 func (g *Gateway) OnPlace(ctx context.Context, conn ConnID, req OrderRequest) {
-	key := requestKey{req.AccountID, req.ClientRequestID}
+	key := requestKey{req.AccountID, req.ClientOrderID}
 	now := g.now()
 	g.mu.Lock()
 	g.pending[key] = pendingEntry{conn: conn, sentAt: now, stage: stageSentToCash}
@@ -148,12 +148,12 @@ func (g *Gateway) OnPlace(ctx context.Context, conn ConnID, req OrderRequest) {
 		g.mu.Lock()
 		delete(g.pending, key)
 		g.mu.Unlock()
-		g.out.Send(conn, OutMsg{Kind: MsgRejected, ClientRequestID: req.ClientRequestID, Reason: ack.Reason, ShortfallMinor: ack.ShortFallMinor})
+		g.out.Send(conn, OutMsg{Kind: MsgRejected, ClientOrderID: req.ClientOrderID, Reason: ack.Reason, ShortfallMinor: ack.ShortFallMinor})
 	}
 }
 
 func (g *Gateway) OnReply(r EngineReply) {
-	key := requestKey{r.AccountID, r.ClientRequestID}
+	key := requestKey{r.AccountID, r.ClientOrderID}
 	g.mu.Lock()
 	e, ok := g.pending[key]
 	if !ok {
@@ -163,7 +163,7 @@ func (g *Gateway) OnReply(r EngineReply) {
 	delete(g.pending, key)
 	g.mu.Unlock()
 
-	msg := OutMsg{Kind: MsgOrderResult, ClientRequestID: r.ClientRequestID, OrderID: r.OrderID}
+	msg := OutMsg{Kind: MsgOrderResult, ClientOrderID: r.ClientOrderID, OrderID: r.OrderID}
 	if r.Rejected {
 		msg.Reason = ReasonEngineRejected
 	}

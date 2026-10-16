@@ -63,7 +63,7 @@ func TestSlowUserDoesNotDelayOthers(t *testing.T) {
 	for range 10 {
 		h.Send(1, core.OutMsg{Kind: core.MsgOrderResult})
 	}
-	h.Send(2, core.OutMsg{Kind: core.MsgOrderResult, ClientRequestID: 7})
+	h.Send(2, core.OutMsg{Kind: core.MsgOrderResult, ClientOrderID: "c-7"})
 
 	select {
 	case <-bob.written:
@@ -119,19 +119,19 @@ func TestMessagesArriveInOrder(t *testing.T) {
 	h.Add(1, bob)
 
 	for i := 1; i <= 5; i++ {
-		h.Send(1, core.OutMsg{Kind: core.MsgOrderResult, ClientRequestID: core.ClientRequestID(i)})
+		h.Send(1, core.OutMsg{Kind: core.MsgOrderResult, ClientOrderID: core.ClientOrderID(strconv.Itoa(i))})
 	}
 	for i := 1; i <= 5; i++ {
 		select {
 		case data := <-bob.written:
 			var w struct {
-				ClientRequestID string `json:"client_request_id"`
+				ClientOrderID string `json:"client_order_id"`
 			}
 			if err := json.Unmarshal(data, &w); err != nil {
 				t.Fatal(err)
 			}
-			if want := strconv.Itoa(i); w.ClientRequestID != want {
-				t.Fatalf("message %d: got request id %s, want %s", i, w.ClientRequestID, want)
+			if want := strconv.Itoa(i); w.ClientOrderID != want {
+				t.Fatalf("message %d: got client_order_id %s, want %s", i, w.ClientOrderID, want)
 			}
 		case <-time.After(time.Second):
 			t.Fatalf("message %d never arrived", i)
@@ -167,31 +167,33 @@ func TestConcurrentSendRemoveAdd(t *testing.T) {
 
 func TestToWireRejected(t *testing.T) {
 	got, err := json.Marshal(toWire(core.OutMsg{
-		Kind:            core.MsgRejected,
-		ClientRequestID: 7,
-		Reason:          core.ReasonInsufficientCash,
-		ShortfallMinor:  5000,
+		Kind:           core.MsgRejected,
+		ClientOrderID:  "c-7",
+		Reason:         core.ReasonInsufficientCash,
+		ShortfallMinor: 5000,
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `{"type":"rejected","client_request_id":"7","reason":"insufficient_cash","shortfall_minor":5000}`
+	want := `{"type":"rejected","client_order_id":"c-7","reason":"insufficient_cash","shortfall_minor":5000}`
 	if string(got) != want {
 		t.Fatalf("got  %s\nwant %s", got, want)
 	}
 }
 
-func TestToWireOrderResultKeepsBig64BitIDsExact(t *testing.T) {
-	big := core.ClientRequestID(1<<62 + 1) // a JSON number this size would lose its last digit in JavaScript
+func TestToWireOrderResultKeepsIDsExact(t *testing.T) {
+	// client_order_id is passed through as-is (a UUID here); order_id is a 64-bit
+	// number sent as a string, because a JSON number this size would lose its
+	// last digit in JavaScript.
 	got, err := json.Marshal(toWire(core.OutMsg{
-		Kind:            core.MsgOrderResult,
-		ClientRequestID: big,
-		OrderID:         core.OrderID(1<<63 + 5),
+		Kind:          core.MsgOrderResult,
+		ClientOrderID: "123e4567-e89b-12d3-a456-426614174000",
+		OrderID:       core.OrderID(1<<63 + 5),
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `{"type":"order_result","client_request_id":"4611686018427387905","order_id":"9223372036854775813"}`
+	want := `{"type":"order_result","client_order_id":"123e4567-e89b-12d3-a456-426614174000","order_id":"9223372036854775813"}`
 	if string(got) != want {
 		t.Fatalf("got  %s\nwant %s", got, want)
 	}
@@ -199,12 +201,12 @@ func TestToWireOrderResultKeepsBig64BitIDsExact(t *testing.T) {
 
 func TestToWireEngineRejectHasReasonAndOrderID(t *testing.T) {
 	got, _ := json.Marshal(toWire(core.OutMsg{
-		Kind:            core.MsgOrderResult,
-		ClientRequestID: 3,
-		OrderID:         9,
-		Reason:          core.ReasonEngineRejected,
+		Kind:          core.MsgOrderResult,
+		ClientOrderID: "c-3",
+		OrderID:       9,
+		Reason:        core.ReasonEngineRejected,
 	}))
-	want := `{"type":"order_result","client_request_id":"3","order_id":"9","reason":"engine_rejected"}`
+	want := `{"type":"order_result","client_order_id":"c-3","order_id":"9","reason":"engine_rejected"}`
 	if string(got) != want {
 		t.Fatalf("got  %s\nwant %s", got, want)
 	}

@@ -73,16 +73,16 @@ func (CashRejectReason) EnumDescriptor() ([]byte, []int) {
 }
 
 type PlaceOrderRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	AccountId       uint64                 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                     // from the verified token
-	ClientRequestId uint64                 `protobuf:"varint,2,opt,name=client_request_id,json=clientRequestId,proto3" json:"client_request_id,omitempty"` // random uint64 made by the client; unique only within one account
-	Symbol          uint32                 `protobuf:"varint,3,opt,name=symbol,proto3" json:"symbol,omitempty"`                                            // symbol_id from refdata
-	Side            Side                   `protobuf:"varint,4,opt,name=side,proto3,enum=exchange.v1.Side" json:"side,omitempty"`
-	PriceMinor      int64                  `protobuf:"varint,5,opt,name=price_minor,json=priceMinor,proto3" json:"price_minor,omitempty"` // limit price, integer minor, > 0
-	Quantity        int64                  `protobuf:"varint,6,opt,name=quantity,proto3" json:"quantity,omitempty"`                       // > 0
-	GatewayId       string                 `protobuf:"bytes,7,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`     // which gateway to send the engine's Reply to; stamped by the gateway itself
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     uint64                 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`              // from the verified token
+	ClientOrderId string                 `protobuf:"bytes,2,opt,name=client_order_id,json=clientOrderId,proto3" json:"client_order_id,omitempty"` // chosen by the client, 1-48 chars [A-Za-z0-9_-], case-sensitive; unique only within one account
+	Symbol        uint32                 `protobuf:"varint,3,opt,name=symbol,proto3" json:"symbol,omitempty"`                                     // symbol_id from refdata
+	Side          Side                   `protobuf:"varint,4,opt,name=side,proto3,enum=exchange.v1.Side" json:"side,omitempty"`
+	PriceMinor    int64                  `protobuf:"varint,5,opt,name=price_minor,json=priceMinor,proto3" json:"price_minor,omitempty"` // limit price, integer minor, > 0
+	Quantity      int64                  `protobuf:"varint,6,opt,name=quantity,proto3" json:"quantity,omitempty"`                       // > 0
+	GatewayId     string                 `protobuf:"bytes,7,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`     // which gateway to send the engine's Reply to; stamped by the gateway itself
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PlaceOrderRequest) Reset() {
@@ -122,11 +122,11 @@ func (x *PlaceOrderRequest) GetAccountId() uint64 {
 	return 0
 }
 
-func (x *PlaceOrderRequest) GetClientRequestId() uint64 {
+func (x *PlaceOrderRequest) GetClientOrderId() string {
 	if x != nil {
-		return x.ClientRequestId
+		return x.ClientOrderId
 	}
-	return 0
+	return ""
 }
 
 func (x *PlaceOrderRequest) GetSymbol() uint32 {
@@ -228,11 +228,11 @@ var File_exchange_v1_cash_owner_proto protoreflect.FileDescriptor
 
 const file_exchange_v1_cash_owner_proto_rawDesc = "" +
 	"\n" +
-	"\x1cexchange/v1/cash_owner.proto\x12\vexchange.v1\x1a\x1aexchange/v1/commands.proto\"\xf9\x01\n" +
+	"\x1cexchange/v1/cash_owner.proto\x12\vexchange.v1\x1a\x1aexchange/v1/commands.proto\"\xf5\x01\n" +
 	"\x11PlaceOrderRequest\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x01 \x01(\x04R\taccountId\x12*\n" +
-	"\x11client_request_id\x18\x02 \x01(\x04R\x0fclientRequestId\x12\x16\n" +
+	"account_id\x18\x01 \x01(\x04R\taccountId\x12&\n" +
+	"\x0fclient_order_id\x18\x02 \x01(\tR\rclientOrderId\x12\x16\n" +
 	"\x06symbol\x18\x03 \x01(\rR\x06symbol\x12%\n" +
 	"\x04side\x18\x04 \x01(\x0e2\x11.exchange.v1.SideR\x04side\x12\x1f\n" +
 	"\vprice_minor\x18\x05 \x01(\x03R\n" +

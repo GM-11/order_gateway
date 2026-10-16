@@ -77,14 +77,14 @@ func (SubmitStatus) EnumDescriptor() ([]byte, []int) {
 }
 
 type SubmitRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	GatewayId       string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
-	ClientRequestId uint64                 `protobuf:"varint,2,opt,name=client_request_id,json=clientRequestId,proto3" json:"client_request_id,omitempty"` // random uint64 made by the client; unique only within one account
-	Symbol          uint32                 `protobuf:"varint,3,opt,name=symbol,proto3" json:"symbol,omitempty"`                                            // the ONLY field the sequencer reads
-	Payload         []byte                 `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`                                           // an encoded CommandBody; the sequencer never opens it
-	AccountId       uint64                 `protobuf:"varint,5,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                     // stamped by the order gateway from the verified token
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GatewayId     string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	ClientOrderId string                 `protobuf:"bytes,2,opt,name=client_order_id,json=clientOrderId,proto3" json:"client_order_id,omitempty"` // chosen by the client, 1-48 chars [A-Za-z0-9_-], case-sensitive; unique only within one account
+	Symbol        uint32                 `protobuf:"varint,3,opt,name=symbol,proto3" json:"symbol,omitempty"`                                     // the ONLY field the sequencer reads
+	Payload       []byte                 `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`                                    // an encoded CommandBody; the sequencer never opens it
+	AccountId     uint64                 `protobuf:"varint,5,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`              // stamped by the order gateway from the verified token
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubmitRequest) Reset() {
@@ -124,11 +124,11 @@ func (x *SubmitRequest) GetGatewayId() string {
 	return ""
 }
 
-func (x *SubmitRequest) GetClientRequestId() uint64 {
+func (x *SubmitRequest) GetClientOrderId() string {
 	if x != nil {
-		return x.ClientRequestId
+		return x.ClientOrderId
 	}
-	return 0
+	return ""
 }
 
 func (x *SubmitRequest) GetSymbol() uint32 {
@@ -153,13 +153,13 @@ func (x *SubmitRequest) GetAccountId() uint64 {
 }
 
 type SubmitAck struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ClientRequestId uint64                 `protobuf:"varint,1,opt,name=client_request_id,json=clientRequestId,proto3" json:"client_request_id,omitempty"` // random uint64 made by the client; unique only within one account
-	Status          SubmitStatus           `protobuf:"varint,2,opt,name=status,proto3,enum=exchange.v1.SubmitStatus" json:"status,omitempty"`
-	Seq             uint64                 `protobuf:"varint,3,opt,name=seq,proto3" json:"seq,omitempty"`                              // set only when ACCEPTED
-	AccountId       uint64                 `protobuf:"varint,4,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"` // stamped by the order gateway from the verified token
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ClientOrderId string                 `protobuf:"bytes,1,opt,name=client_order_id,json=clientOrderId,proto3" json:"client_order_id,omitempty"` // chosen by the client, 1-48 chars [A-Za-z0-9_-], case-sensitive; unique only within one account
+	Status        SubmitStatus           `protobuf:"varint,2,opt,name=status,proto3,enum=exchange.v1.SubmitStatus" json:"status,omitempty"`
+	Seq           uint64                 `protobuf:"varint,3,opt,name=seq,proto3" json:"seq,omitempty"`                              // set only when ACCEPTED
+	AccountId     uint64                 `protobuf:"varint,4,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"` // stamped by the order gateway from the verified token
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubmitAck) Reset() {
@@ -192,11 +192,11 @@ func (*SubmitAck) Descriptor() ([]byte, []int) {
 	return file_exchange_v1_sequencer_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SubmitAck) GetClientRequestId() uint64 {
+func (x *SubmitAck) GetClientOrderId() string {
 	if x != nil {
-		return x.ClientRequestId
+		return x.ClientOrderId
 	}
-	return 0
+	return ""
 }
 
 func (x *SubmitAck) GetStatus() SubmitStatus {
@@ -273,16 +273,16 @@ func (x *SubscribeRequest) GetFromSeq() uint64 {
 }
 
 type SequencedCommand struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Seq             uint64                 `protobuf:"varint,1,opt,name=seq,proto3" json:"seq,omitempty"` // per partition, starts at 1, no gaps
-	Ts              int64                  `protobuf:"varint,2,opt,name=ts,proto3" json:"ts,omitempty"`   // the sequencer's clock, milliseconds
-	Symbol          uint32                 `protobuf:"varint,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
-	ClientRequestId uint64                 `protobuf:"varint,4,opt,name=client_request_id,json=clientRequestId,proto3" json:"client_request_id,omitempty"` // random uint64 made by the client; unique only within one account
-	GatewayId       string                 `protobuf:"bytes,5,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`                      // so replies can find their way back later
-	Payload         []byte                 `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`
-	AccountId       uint64                 `protobuf:"varint,7,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"` // stamped by the order gateway from the verified token
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Seq           uint64                 `protobuf:"varint,1,opt,name=seq,proto3" json:"seq,omitempty"` // per partition, starts at 1, no gaps
+	Ts            int64                  `protobuf:"varint,2,opt,name=ts,proto3" json:"ts,omitempty"`   // the sequencer's clock, milliseconds
+	Symbol        uint32                 `protobuf:"varint,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	ClientOrderId string                 `protobuf:"bytes,4,opt,name=client_order_id,json=clientOrderId,proto3" json:"client_order_id,omitempty"` // chosen by the client, 1-48 chars [A-Za-z0-9_-], case-sensitive; unique only within one account
+	GatewayId     string                 `protobuf:"bytes,5,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`               // so replies can find their way back later
+	Payload       []byte                 `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`
+	AccountId     uint64                 `protobuf:"varint,7,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"` // stamped by the order gateway from the verified token
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SequencedCommand) Reset() {
@@ -336,11 +336,11 @@ func (x *SequencedCommand) GetSymbol() uint32 {
 	return 0
 }
 
-func (x *SequencedCommand) GetClientRequestId() uint64 {
+func (x *SequencedCommand) GetClientOrderId() string {
 	if x != nil {
-		return x.ClientRequestId
+		return x.ClientOrderId
 	}
-	return 0
+	return ""
 }
 
 func (x *SequencedCommand) GetGatewayId() string {
@@ -368,29 +368,29 @@ var File_exchange_v1_sequencer_proto protoreflect.FileDescriptor
 
 const file_exchange_v1_sequencer_proto_rawDesc = "" +
 	"\n" +
-	"\x1bexchange/v1/sequencer.proto\x12\vexchange.v1\"\xab\x01\n" +
+	"\x1bexchange/v1/sequencer.proto\x12\vexchange.v1\"\xa7\x01\n" +
 	"\rSubmitRequest\x12\x1d\n" +
 	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12*\n" +
-	"\x11client_request_id\x18\x02 \x01(\x04R\x0fclientRequestId\x12\x16\n" +
+	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12&\n" +
+	"\x0fclient_order_id\x18\x02 \x01(\tR\rclientOrderId\x12\x16\n" +
 	"\x06symbol\x18\x03 \x01(\rR\x06symbol\x12\x18\n" +
 	"\apayload\x18\x04 \x01(\fR\apayload\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x05 \x01(\x04R\taccountId\"\x9b\x01\n" +
-	"\tSubmitAck\x12*\n" +
-	"\x11client_request_id\x18\x01 \x01(\x04R\x0fclientRequestId\x121\n" +
+	"account_id\x18\x05 \x01(\x04R\taccountId\"\x97\x01\n" +
+	"\tSubmitAck\x12&\n" +
+	"\x0fclient_order_id\x18\x01 \x01(\tR\rclientOrderId\x121\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x19.exchange.v1.SubmitStatusR\x06status\x12\x10\n" +
 	"\x03seq\x18\x03 \x01(\x04R\x03seq\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x04 \x01(\x04R\taccountId\"K\n" +
 	"\x10SubscribeRequest\x12\x1c\n" +
 	"\tpartition\x18\x01 \x01(\rR\tpartition\x12\x19\n" +
-	"\bfrom_seq\x18\x02 \x01(\x04R\afromSeq\"\xd0\x01\n" +
+	"\bfrom_seq\x18\x02 \x01(\x04R\afromSeq\"\xcc\x01\n" +
 	"\x10SequencedCommand\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x04R\x03seq\x12\x0e\n" +
 	"\x02ts\x18\x02 \x01(\x03R\x02ts\x12\x16\n" +
-	"\x06symbol\x18\x03 \x01(\rR\x06symbol\x12*\n" +
-	"\x11client_request_id\x18\x04 \x01(\x04R\x0fclientRequestId\x12\x1d\n" +
+	"\x06symbol\x18\x03 \x01(\rR\x06symbol\x12&\n" +
+	"\x0fclient_order_id\x18\x04 \x01(\tR\rclientOrderId\x12\x1d\n" +
 	"\n" +
 	"gateway_id\x18\x05 \x01(\tR\tgatewayId\x12\x18\n" +
 	"\apayload\x18\x06 \x01(\fR\apayload\x12\x1d\n" +

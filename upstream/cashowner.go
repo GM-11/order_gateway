@@ -33,13 +33,13 @@ func (c *CashOwnerClient) toProto(r core.OrderRequest) *pb.PlaceOrderRequest {
 		side = pb.Side_SIDE_SELL
 	}
 	return &pb.PlaceOrderRequest{
-		AccountId:       uint64(r.AccountID),
-		ClientRequestId: uint64(r.ClientRequestID),
-		Symbol:          uint32(r.Symbol),
-		Side:            side,
-		PriceMinor:      r.PriceMinor,
-		Quantity:        r.Qty,
-		GatewayId:       c.gatewayID,
+		AccountId:     uint64(r.AccountID),
+		ClientOrderId: string(r.ClientOrderID),
+		Symbol:        uint32(r.Symbol),
+		Side:          side,
+		PriceMinor:    r.PriceMinor,
+		Quantity:      r.Qty,
+		GatewayId:     c.gatewayID,
 	}
 }
 

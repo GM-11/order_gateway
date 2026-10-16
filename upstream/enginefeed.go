@@ -41,9 +41,9 @@ func replyFromProto(p *pb.Reply) (core.EngineReply, bool) {
 		return core.EngineReply{}, false
 	}
 	return core.EngineReply{
-		AccountID:       core.AccountID(p.GetAccountId()),
-		ClientRequestID: core.ClientRequestID(p.GetClientRequestId()),
-		OrderID:         core.OrderID(p.GetOrderId()),
-		Rejected:        p.GetRejectReason() != pb.RejectReason_REJECT_REASON_NONE,
+		AccountID:     core.AccountID(p.GetAccountId()),
+		ClientOrderID: core.ClientOrderID(p.GetClientOrderId()),
+		OrderID:       core.OrderID(p.GetOrderId()),
+		Rejected:      p.GetRejectReason() != pb.RejectReason_REJECT_REASON_NONE,
 	}, true
 }

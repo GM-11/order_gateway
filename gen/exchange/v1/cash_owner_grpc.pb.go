@@ -25,26 +25,7 @@ const (
 // CashOwnerClient is the client API for CashOwner service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-//
-// Order gateway -> cash owner. INTERNAL ONLY: only order gateways may call it
-// (mTLS later). Every field here is a fact stamped by the gateway, never a
-// claim copied from the browser.
 type CashOwnerClient interface {
-	// Lock the money (buy) or shares (sell) for one limit order, then forward it
-	// to the sequencer. One call per order for now; a long-lived stream later if
-	// profiling says so (only the gateway's upstream/ adapter would change).
-	//
-	// Answers:
-	//
-	//	OK + accepted=true   money/shares locked AND the order was handed to the
-	//	                     sequencer. NOT "filled": the final answer comes
-	//	                     later as an EngineFeed Reply.
-	//	OK + accepted=false  a definite "no": nothing locked, nothing forwarded.
-	//	any status error     NO answer. The caller must treat the outcome as
-	//	                     unknown, never as rejected.
-	//
-	// Idempotent: the key is (account_id, client_request_id). Sending the same
-	// key again returns the first answer again; it never locks twice.
 	PlaceOrder(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (*PlaceOrderAck, error)
 }
 
@@ -69,26 +50,7 @@ func (c *cashOwnerClient) PlaceOrder(ctx context.Context, in *PlaceOrderRequest,
 // CashOwnerServer is the server API for CashOwner service.
 // All implementations must embed UnimplementedCashOwnerServer
 // for forward compatibility.
-//
-// Order gateway -> cash owner. INTERNAL ONLY: only order gateways may call it
-// (mTLS later). Every field here is a fact stamped by the gateway, never a
-// claim copied from the browser.
 type CashOwnerServer interface {
-	// Lock the money (buy) or shares (sell) for one limit order, then forward it
-	// to the sequencer. One call per order for now; a long-lived stream later if
-	// profiling says so (only the gateway's upstream/ adapter would change).
-	//
-	// Answers:
-	//
-	//	OK + accepted=true   money/shares locked AND the order was handed to the
-	//	                     sequencer. NOT "filled": the final answer comes
-	//	                     later as an EngineFeed Reply.
-	//	OK + accepted=false  a definite "no": nothing locked, nothing forwarded.
-	//	any status error     NO answer. The caller must treat the outcome as
-	//	                     unknown, never as rejected.
-	//
-	// Idempotent: the key is (account_id, client_request_id). Sending the same
-	// key again returns the first answer again; it never locks twice.
 	PlaceOrder(context.Context, *PlaceOrderRequest) (*PlaceOrderAck, error)
 	mustEmbedUnimplementedCashOwnerServer()
 }

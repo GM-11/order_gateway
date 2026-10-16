@@ -490,16 +490,16 @@ func (x *MarketEvent) GetLimitPrice() int64 {
 	return 0
 }
 
-// The engine's private answer to one request. Sent on SubscribeReplies.
+// The engine's private answer to one order submission. Sent on SubscribeReplies.
 type Reply struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	GatewayId          string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
-	ClientRequestId    uint64                 `protobuf:"varint,2,opt,name=client_request_id,json=clientRequestId,proto3" json:"client_request_id,omitempty"` // random uint64 made by the client; unique only within one account
+	ClientOrderId      string                 `protobuf:"bytes,2,opt,name=client_order_id,json=clientOrderId,proto3" json:"client_order_id,omitempty"` // chosen by the client, 1-48 chars [A-Za-z0-9_-], case-sensitive; unique only within one account
 	Symbol             uint32                 `protobuf:"varint,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
 	RejectReason       RejectReason           `protobuf:"varint,4,opt,name=reject_reason,json=rejectReason,proto3,enum=exchange.v1.RejectReason" json:"reject_reason,omitempty"`
 	UnacceptedQuantity int64                  `protobuf:"varint,5,opt,name=unaccepted_quantity,json=unacceptedQuantity,proto3" json:"unaccepted_quantity,omitempty"` // rejected or discarded, not on the book
 	RestedPrice        *int64                 `protobuf:"varint,6,opt,name=rested_price,json=restedPrice,proto3,oneof" json:"rested_price,omitempty"`                // set when a limit remainder rested at the band edge
-	AccountId          uint64                 `protobuf:"varint,7,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                            // with client_request_id, the request key
+	AccountId          uint64                 `protobuf:"varint,7,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                            // with client_order_id, the request key
 	OrderId            uint64                 `protobuf:"varint,8,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`                                  // new order/stop: the id it was given. cancel/modify: the target order id
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
@@ -542,11 +542,11 @@ func (x *Reply) GetGatewayId() string {
 	return ""
 }
 
-func (x *Reply) GetClientRequestId() uint64 {
+func (x *Reply) GetClientOrderId() string {
 	if x != nil {
-		return x.ClientRequestId
+		return x.ClientOrderId
 	}
-	return 0
+	return ""
 }
 
 func (x *Reply) GetSymbol() uint32 {
@@ -878,11 +878,11 @@ const file_exchange_v1_engine_feed_proto_rawDesc = "" +
 	"\vlimit_price\x18\f \x01(\x03H\x01R\n" +
 	"limitPrice\x88\x01\x01B\b\n" +
 	"\x06_priceB\x0e\n" +
-	"\f_limit_price\"\xce\x02\n" +
+	"\f_limit_price\"\xca\x02\n" +
 	"\x05Reply\x12\x1d\n" +
 	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12*\n" +
-	"\x11client_request_id\x18\x02 \x01(\x04R\x0fclientRequestId\x12\x16\n" +
+	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12&\n" +
+	"\x0fclient_order_id\x18\x02 \x01(\tR\rclientOrderId\x12\x16\n" +
 	"\x06symbol\x18\x03 \x01(\rR\x06symbol\x12>\n" +
 	"\rreject_reason\x18\x04 \x01(\x0e2\x19.exchange.v1.RejectReasonR\frejectReason\x12/\n" +
 	"\x13unaccepted_quantity\x18\x05 \x01(\x03R\x12unacceptedQuantity\x12&\n" +

@@ -6,17 +6,17 @@ import (
 )
 
 type wireMsg struct {
-	Type            string `json:"type"`
-	ClientRequestID string `json:"client_request_id"` // string, because JavaScript breaks big 64-bit numbers
-	OrderID         string `json:"order_id,omitempty"`
-	Reason          string `json:"reason,omitempty"`
-	ShortfallMinor  int64  `json:"shortfall_minor,omitempty"`
+	Type           string `json:"type"`
+	ClientOrderID  string `json:"client_order_id"` // chosen by the client; passed through unchanged
+	OrderID        string `json:"order_id,omitempty"`
+	Reason         string `json:"reason,omitempty"`
+	ShortfallMinor int64  `json:"shortfall_minor,omitempty"`
 }
 
 func toWire(m core.OutMsg) wireMsg {
 	w := wireMsg{
-		ClientRequestID: strconv.FormatUint(uint64(m.ClientRequestID), 10),
-		ShortfallMinor:  m.ShortfallMinor,
+		ClientOrderID:  string(m.ClientOrderID),
+		ShortfallMinor: m.ShortfallMinor,
 	}
 	switch m.Kind {
 	case core.MsgRejected:

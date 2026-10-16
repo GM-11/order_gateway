@@ -26,45 +26,8 @@ const (
 // EngineFeedClient is the client API for EngineFeed service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-//
-// Engine -> gateways. INTERNAL ONLY: events and replies carry owner/account
-// ids, which must be stripped before anything reaches the public feed.
-//
-// Two separate streams, so public market data can never crowd out private
-// replies: each stream has its own queue in the engine.
 type EngineFeedClient interface {
-	// PUBLIC data, for the market-data gateway. One long-lived stream per
-	// gateway. For each requested symbol it sends one BookSnapshot, then every
-	// MarketEvent for that symbol numbered snapshot.as_of_seq + 1, + 2, ...
-	// with no gaps. It carries NO replies (see SubscribeReplies).
-	//
-	// There is no replay. To recover from anything (a dropped connection, a
-	// gap, being dropped for falling behind), subscribe again: you get fresh
-	// snapshots.
-	//
-	// Errors: INVALID_ARGUMENT empty gateway_id; NOT_FOUND unknown symbol;
-	// ALREADY_EXISTS this gateway_id already has a Subscribe stream;
-	// RESOURCE_EXHAUSTED you fell behind and were dropped; UNAVAILABLE the
-	// engine is stopping.
-	//
-	// A snapshot of a deep book can be several MB: raise the client's
-	// max receive message size if needed (gRPC's default is 4 MB).
 	Subscribe(ctx context.Context, in *FeedSubscribeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[FeedMessage], error)
-	// PRIVATE answers, for the order gateway. One long-lived stream per
-	// gateway, carrying only the Replies addressed to this gateway_id, in the
-	// order the engine produced them. No snapshots, no market events.
-	//
-	// Replies are not numbered and never resent. A Reply produced while this
-	// gateway has no open SubscribeReplies stream is dropped, and so is every
-	// Reply still queued when the stream is dropped for falling behind: the
-	// gateway must treat those requests' outcomes as unknown.
-	//
-	// gateway_id namespaces are separate: the same id may hold one Subscribe
-	// stream and one SubscribeReplies stream at the same time.
-	//
-	// Errors: INVALID_ARGUMENT empty gateway_id; ALREADY_EXISTS this gateway_id
-	// already has a SubscribeReplies stream; RESOURCE_EXHAUSTED you fell behind
-	// and were dropped (queued replies lost); UNAVAILABLE the engine is stopping.
 	SubscribeReplies(ctx context.Context, in *RepliesSubscribeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Reply], error)
 }
 
@@ -117,45 +80,8 @@ type EngineFeed_SubscribeRepliesClient = grpc.ServerStreamingClient[Reply]
 // EngineFeedServer is the server API for EngineFeed service.
 // All implementations must embed UnimplementedEngineFeedServer
 // for forward compatibility.
-//
-// Engine -> gateways. INTERNAL ONLY: events and replies carry owner/account
-// ids, which must be stripped before anything reaches the public feed.
-//
-// Two separate streams, so public market data can never crowd out private
-// replies: each stream has its own queue in the engine.
 type EngineFeedServer interface {
-	// PUBLIC data, for the market-data gateway. One long-lived stream per
-	// gateway. For each requested symbol it sends one BookSnapshot, then every
-	// MarketEvent for that symbol numbered snapshot.as_of_seq + 1, + 2, ...
-	// with no gaps. It carries NO replies (see SubscribeReplies).
-	//
-	// There is no replay. To recover from anything (a dropped connection, a
-	// gap, being dropped for falling behind), subscribe again: you get fresh
-	// snapshots.
-	//
-	// Errors: INVALID_ARGUMENT empty gateway_id; NOT_FOUND unknown symbol;
-	// ALREADY_EXISTS this gateway_id already has a Subscribe stream;
-	// RESOURCE_EXHAUSTED you fell behind and were dropped; UNAVAILABLE the
-	// engine is stopping.
-	//
-	// A snapshot of a deep book can be several MB: raise the client's
-	// max receive message size if needed (gRPC's default is 4 MB).
 	Subscribe(*FeedSubscribeRequest, grpc.ServerStreamingServer[FeedMessage]) error
-	// PRIVATE answers, for the order gateway. One long-lived stream per
-	// gateway, carrying only the Replies addressed to this gateway_id, in the
-	// order the engine produced them. No snapshots, no market events.
-	//
-	// Replies are not numbered and never resent. A Reply produced while this
-	// gateway has no open SubscribeReplies stream is dropped, and so is every
-	// Reply still queued when the stream is dropped for falling behind: the
-	// gateway must treat those requests' outcomes as unknown.
-	//
-	// gateway_id namespaces are separate: the same id may hold one Subscribe
-	// stream and one SubscribeReplies stream at the same time.
-	//
-	// Errors: INVALID_ARGUMENT empty gateway_id; ALREADY_EXISTS this gateway_id
-	// already has a SubscribeReplies stream; RESOURCE_EXHAUSTED you fell behind
-	// and were dropped (queued replies lost); UNAVAILABLE the engine is stopping.
 	SubscribeReplies(*RepliesSubscribeRequest, grpc.ServerStreamingServer[Reply]) error
 	mustEmbedUnimplementedEngineFeedServer()
 }

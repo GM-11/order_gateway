@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -34,13 +35,13 @@ func TestTwoGoroutinesTouchPending(t *testing.T) {
 	go func() { // browser reader
 		defer wg.Done()
 		for i := 1; i <= 1000; i++ {
-			gw.OnPlace(context.Background(), 3, OrderRequest{AccountID: 7, ClientRequestID: ClientRequestID(i)})
+			gw.OnPlace(context.Background(), 3, OrderRequest{AccountID: 7, ClientOrderID: ClientOrderID(strconv.Itoa(i))})
 		}
 	}()
 	go func() { // engine-feed reader
 		defer wg.Done()
 		for i := 1; i <= 1000; i++ {
-			gw.OnReply(EngineReply{AccountID: 7, ClientRequestID: ClientRequestID(i), OrderID: OrderID(i)})
+			gw.OnReply(EngineReply{AccountID: 7, ClientOrderID: ClientOrderID(strconv.Itoa(i)), OrderID: OrderID(i)})
 		}
 	}()
 	wg.Wait()
