@@ -401,3 +401,37 @@ func TestCash_InsufficientHoldings(t *testing.T) {
 		t.Errorf("shortfall must be absent for holdings rejection, got %q", resp.Shortfall)
 	}
 }
+
+func TestOrdersHandler_FeedNotLive(t *testing.T) {
+	placer := &mockPlacer{result: core.Result{Outcome: core.OutcomePlaced, OrderID: 1}}
+	handler := &Orders{
+		Auth: &mockVerifier{principal: auth.Principal{Account: core.AccountID(123)}},
+		Symbols: &mockSymbols{
+			instruments: map[string]refdata.Instrument{"AAPL": {ID: core.SymbolID(1)}},
+		},
+		Placer:   placer,
+		FeedLive: func() bool { return false },
+	}
+
+	body, _ := json.Marshal(placeOrderRequest{
+		ClientOrderID: "order-1", Symbol: "AAPL", Side: "buy", Type: "limit",
+		TimeInForce: "gtc", Price: "101.50", Qty: "10",
+	})
+	httpReq := httptest.NewRequest("POST", "/orders", bytes.NewReader(body))
+	httpReq.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, httpReq)
+
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("expected status 503, got %d", w.Code)
+	}
+	var resp errorResponse
+	json.NewDecoder(w.Body).Decode(&resp)
+	if resp.Error != "engine_unavailable" {
+		t.Errorf("expected error 'engine_unavailable', got %q", resp.Error)
+	}
+	if placer.lastReq != nil {
+		t.Error("expected placer not to be called")
+	}
+}
