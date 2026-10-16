@@ -19,6 +19,8 @@ type JWTVerifier struct {
 	parser   *jwt.Parser      // built once in the constructor
 }
 
+const maxTokenLifetime = time.Hour
+
 func NewJWTVerifier(keys *JWKSCache, issuer, audience string, leeway time.Duration, now func() time.Time) *JWTVerifier {
 	if now == nil {
 		now = time.Now
@@ -36,6 +38,7 @@ func NewJWTVerifier(keys *JWKSCache, issuer, audience string, leeway time.Durati
 			jwt.WithExpirationRequired(),
 			jwt.WithLeeway(leeway),
 			jwt.WithTimeFunc(now),
+			jwt.WithIssuedAt(),
 		),
 	}
 }
@@ -66,6 +69,9 @@ func (v *JWTVerifier) Verify(c Credentials) (Principal, error) {
 		return ed25519.PublicKey(key), nil
 	})
 	if err != nil || claims.IssuedAt == nil || claims.NotBefore == nil {
+		return Principal{}, ErrBadCredentials
+	}
+	if claims.ExpiresAt.Sub(claims.IssuedAt.Time) > maxTokenLifetime {
 		return Principal{}, ErrBadCredentials
 	}
 
