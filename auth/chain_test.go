@@ -11,8 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"order_gateway/core"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type chainTestSource struct{ snapshot *KeySnapshot }
@@ -43,7 +44,7 @@ func readyChainJWT(t *testing.T, now time.Time) (*JWTVerifier, string) {
 	cache.keys.Store(&map[string]ed25519.PublicKey{"jwt-kid": public})
 	claims := jwt.RegisteredClaims{
 		Issuer: "protrader-identity", Audience: jwt.ClaimStrings{"order-gateway"}, Subject: "9",
-		ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour)), NotBefore: jwt.NewNumericDate(now.Add(-time.Minute)),
+		ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Minute)), NotBefore: jwt.NewNumericDate(now.Add(-time.Minute)),
 		IssuedAt: jwt.NewNumericDate(now.Add(-time.Minute)),
 	}
 	return NewJWTVerifier(cache, "protrader-identity", "order-gateway", 30*time.Second, func() time.Time { return now }), mint(t, private, "jwt-kid", claims)

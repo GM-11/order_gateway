@@ -34,7 +34,7 @@ func mint(t *testing.T, private ed25519.PrivateKey, kid string, claims jwt.Regis
 func jwtTestClaims(now time.Time) jwt.RegisteredClaims {
 	return jwt.RegisteredClaims{
 		Issuer: "protrader-identity", Audience: jwt.ClaimStrings{"order-gateway"}, Subject: "7",
-		ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour)), NotBefore: jwt.NewNumericDate(now.Add(-time.Minute)),
+		ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Minute)), NotBefore: jwt.NewNumericDate(now.Add(-time.Minute)),
 		IssuedAt: jwt.NewNumericDate(now.Add(-time.Minute)),
 	}
 }
@@ -67,7 +67,6 @@ func setupJWTTest(t *testing.T, now time.Time) (*JWTVerifier, ed25519.PrivateKey
 	verifier := NewJWTVerifier(cache, "protrader-identity", "order-gateway", 30*time.Second, func() time.Time { return now })
 	return verifier, private, otherPrivate
 }
-
 func TestJWTVerifier(t *testing.T) {
 	now := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 	verifier, private, otherPrivate := setupJWTTest(t, now)
@@ -104,6 +103,12 @@ func TestJWTVerifier(t *testing.T) {
 	missingSubject := claims
 	missingSubject.Subject = ""
 	noSub := mint(t, private, "known", missingSubject)
+	longLifetime := claims
+	longLifetime.ExpiresAt = jwt.NewNumericDate(claims.IssuedAt.Time.Add(10 * 365 * 24 * time.Hour))
+	longLifetimeToken := mint(t, private, "known", longLifetime)
+	futureIssuedAt := claims
+	futureIssuedAt.IssuedAt = jwt.NewNumericDate(now.Add(24 * time.Hour))
+	futureIssuedAtToken := mint(t, private, "known", futureIssuedAt)
 
 	hmac := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	hmac.Header["kid"] = "known"
@@ -139,6 +144,8 @@ func TestJWTVerifier(t *testing.T) {
 			return c
 		}())},
 		{name: "no expiration", token: noExp},
+		{name: "expiration ten years after issued at", token: longLifetimeToken},
+		{name: "issued at one day in the future", token: futureIssuedAtToken},
 		{name: "wrong issuer", token: wrongIss},
 		{name: "wrong audience", token: wrongAud},
 		{name: "audience list contains configured audience", token: validAudList, wantOK: true},
