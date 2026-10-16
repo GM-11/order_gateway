@@ -8,41 +8,37 @@ import (
 	"time"
 )
 
-// Stateless fakes: they share nothing, so the only shared state left
-// is the Gateway's own pending map. (fakeCash/fakeSender use append,
-// which would race too and muddy the result.)
+// Stateless fake: shares nothing, so the only shared state is the Gateway's map.
 type okCash struct{}
 
-func (okCash) Submit(ctx context.Context, r OrderRequest) (Acknowledge, error) {
+func (okCash) Submit(context.Context, OrderRequest) (Acknowledge, error) {
 	return Acknowledge{Accepted: true}, nil
 }
 
-type nopSender struct{}
-
-func (nopSender) Send(ConnID, OutMsg) bool { return true }
-
-// Two goroutines touch the Gateway at once, like real main.go will:
-//   - browser reader:     Alice's orders arrive  -> OnPlace (adds to pending)
-//   - engine-feed reader: engine replies arrive  -> OnReply (reads + deletes)
-//
-// Run with: go test -race -run TestTwoGoroutinesTouchPending -v ./core
-// Expected today: DATA RACE + FAIL. That is the bug LLD #6 fixes.
-func TestTwoGoroutinesTouchPending(t *testing.T) {
-	gw := New(okCash{}, nopSender{}, time.Now, time.Second)
+// 1,000 handlers call Place while the engine-feed goroutine calls OnReply,
+// like real traffic. Run with -race. Some replies arrive before their note
+// exists and are dropped; those Place calls time out. Either way: no data
+// race, no freeze, and no note left behind.
+func TestPlaceAndOnReplyConcurrently(t *testing.T) {
+	gw := New(okCash{}, time.Now, 200*time.Millisecond)
+	const n = 1000
 	var wg sync.WaitGroup
-	wg.Add(2)
 
-	go func() { // browser reader
-		defer wg.Done()
-		for i := 1; i <= 1000; i++ {
-			gw.OnPlace(context.Background(), 3, OrderRequest{AccountID: 7, ClientOrderID: ClientOrderID(strconv.Itoa(i))})
-		}
-	}()
-	go func() { // engine-feed reader
-		defer wg.Done()
-		for i := 1; i <= 1000; i++ {
+	for i := 1; i <= n; i++ {
+		wg.Add(1)
+		go func(i int) { // one goroutine per HTTP request
+			defer wg.Done()
+			gw.Place(context.Background(), OrderRequest{AccountID: 7, ClientOrderID: ClientOrderID(strconv.Itoa(i))})
+		}(i)
+	}
+	wg.Go(func() { // the single engine-feed reader
+		for i := 1; i <= n; i++ {
 			gw.OnReply(EngineReply{AccountID: 7, ClientOrderID: ClientOrderID(strconv.Itoa(i)), OrderID: OrderID(i)})
 		}
-	}()
+	})
 	wg.Wait()
+
+	if c := pendingCount(gw); c != 0 {
+		t.Fatalf("every way out must clean up: %d notes left", c)
+	}
 }
