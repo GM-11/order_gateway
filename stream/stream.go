@@ -60,9 +60,30 @@ type Server struct {
 
 	next atomic.Uint64
 
-	mu        sync.Mutex
-	byAccount map[core.AccountID]map[core.ConnID]struct{} // listening connections only
-	accountOf map[core.ConnID]core.AccountID
+	MaxHeld int // updates held per connection while its snapshot is in flight; 0 = 1000
+
+	mu        sync.Mutex                                    // guards everything below, and makes check-and-send atomic
+	byAccount map[core.AccountID]map[core.ConnID]*connState // listening connections only
+	conns     map[core.ConnID]*connState
+}
+
+const defaultMaxHeld = 1000
+
+// connState is one listening connection. While holding, a snapshot for it is
+// being fetched: updates are queued, not sent, so that the first frame after
+// a snapshot with account_seq N is update N+1 (contract 3.3).
+type connState struct {
+	account   core.AccountID
+	holding   bool
+	gen       uint64 // bumped per snapshot; an older snapshot's result is discarded
+	held      []heldUpdate
+	dead      bool // overflowed or failed: already being closed with 4008
+	closeSlow func()
+}
+
+type heldUpdate struct {
+	seq     uint64
+	payload []byte
 }
 
 var _ http.Handler = (*Server)(nil)
@@ -115,7 +136,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := core.ConnID(s.next.Add(1))
-	s.Hub.Add(id, &socket{conn: conn})
+	sock := &socket{conn: conn}
+	s.Hub.Add(id, sock)
 	defer func() {
 		s.unregister(id)
 		s.Hub.Remove(id)
@@ -136,18 +158,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "auth":
 			// already authorized; nothing to do
 		case "listen":
-			if !s.listen(id, principal.Account, m.Data.Streams) {
-				_ = conn.Close(websocket.StatusInternalError, "cash owner unavailable")
-				return
-			}
+			s.listen(id, principal.Account, m.Data.Streams, func() { _ = sock.CloseSlow() })
 		case "resync":
-			if !s.isListening(id) {
-				continue
-			}
-			if !s.sendSnapshot(id, principal.Account) {
-				_ = conn.Close(websocket.StatusInternalError, "cash owner unavailable")
-				return
-			}
+			s.resync(id)
 		default:
 			_ = conn.Close(websocket.StatusPolicyViolation, "unknown action")
 			return
@@ -189,10 +202,9 @@ func (s *Server) send(id core.ConnID, payload []byte) bool {
 	return s.Hub.Send(id, core.OutMsg{Kind: core.MsgRaw, Payload: payload})
 }
 
-// listen answers a listen request: `listening`, then registration, then the
-// snapshot. Registering before the snapshot means no update is missed; an
-// update that beats the snapshot to the client is simply older than it.
-func (s *Server) listen(id core.ConnID, account core.AccountID, streams []string) bool {
+// listen answers a listen request: `listening`, then registration (which
+// starts holding updates), then the snapshot.
+func (s *Server) listen(id core.ConnID, account core.AccountID, streams []string, closeSlow func()) {
 	granted := []string{}
 	for _, name := range streams {
 		if name == "trade_updates" {
@@ -201,45 +213,112 @@ func (s *Server) listen(id core.ConnID, account core.AccountID, streams []string
 	}
 	s.send(id, frame("listening", map[string][]string{"streams": granted}))
 	if len(granted) == 0 {
-		return true
+		return
 	}
-	s.register(id, account)
-	return s.sendSnapshot(id, account)
+	gen := s.register(id, account, closeSlow)
+	s.snapshot(id, account, gen)
 }
 
-func (s *Server) register(id core.ConnID, account core.AccountID) {
+func (s *Server) resync(id core.ConnID) {
+	s.mu.Lock()
+	st := s.conns[id]
+	if st == nil || st.dead {
+		s.mu.Unlock()
+		return // not listening: nothing to resync
+	}
+	gen := s.begin(st)
+	account := st.account
+	s.mu.Unlock()
+	s.snapshot(id, account, gen)
+}
+
+// begin marks the connection as having a snapshot in flight. Caller holds s.mu.
+func (s *Server) begin(st *connState) uint64 {
+	st.holding = true
+	st.held = nil
+	st.gen++
+	return st.gen
+}
+
+// register adds a listening connection, already holding. Re-listening on a
+// registered connection just starts a new snapshot.
+func (s *Server) register(id core.ConnID, account core.AccountID, closeSlow func()) uint64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.byAccount == nil {
-		s.byAccount = make(map[core.AccountID]map[core.ConnID]struct{})
-		s.accountOf = make(map[core.ConnID]core.AccountID)
+	if s.conns == nil {
+		s.conns = make(map[core.ConnID]*connState)
+		s.byAccount = make(map[core.AccountID]map[core.ConnID]*connState)
 	}
-	if s.byAccount[account] == nil {
-		s.byAccount[account] = make(map[core.ConnID]struct{})
+	st := s.conns[id]
+	if st == nil {
+		st = &connState{account: account, closeSlow: closeSlow}
+		s.conns[id] = st
+		if s.byAccount[account] == nil {
+			s.byAccount[account] = make(map[core.ConnID]*connState)
+		}
+		s.byAccount[account][id] = st
 	}
-	s.byAccount[account][id] = struct{}{}
-	s.accountOf[id] = account
+	return s.begin(st)
 }
 
 func (s *Server) unregister(id core.ConnID) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	account, ok := s.accountOf[id]
+	st, ok := s.conns[id]
 	if !ok {
 		return
 	}
-	delete(s.accountOf, id)
-	delete(s.byAccount[account], id)
-	if len(s.byAccount[account]) == 0 {
-		delete(s.byAccount, account)
+	delete(s.conns, id)
+	delete(s.byAccount[st.account], id)
+	if len(s.byAccount[st.account]) == 0 {
+		delete(s.byAccount, st.account)
 	}
 }
 
-func (s *Server) isListening(id core.ConnID) bool {
+// snapshot fetches the account and delivers it for the given generation.
+func (s *Server) snapshot(id core.ConnID, account core.AccountID, gen uint64) {
+	payload, seq, ok := s.fetchSnapshot(account)
+	if !ok {
+		s.failSnapshot(id, gen)
+		return
+	}
+	s.finishSnapshot(id, gen, payload, seq)
+}
+
+// finishSnapshot pushes the snapshot, then the held updates newer than it, in
+// order, then stops holding. All under s.mu, as OnUpdate's check-and-send is,
+// so no update slips in between. Hub.Send never blocks.
+func (s *Server) finishSnapshot(id core.ConnID, gen uint64, payload []byte, seq uint64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, ok := s.accountOf[id]
-	return ok
+	st := s.conns[id]
+	if st == nil || st.dead || st.gen != gen {
+		return // gone, failed, or a later snapshot superseded this one
+	}
+	s.send(id, payload)
+	for _, h := range st.held {
+		if h.seq > seq {
+			s.send(id, h.payload)
+		}
+	}
+	st.held = nil
+	st.holding = false
+}
+
+// failSnapshot: a client without a snapshot has nothing to apply updates to,
+// so it is closed (4008) and reconnects.
+func (s *Server) failSnapshot(id core.ConnID, gen uint64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if st := s.conns[id]; st != nil && !st.dead && st.gen == gen {
+		s.kill(st)
+	}
+}
+
+// kill closes a connection with 4008. Caller holds s.mu.
+func (s *Server) kill(st *connState) {
+	st.dead, st.holding, st.held = true, false, nil
+	st.closeSlow()
 }
 
 func (s *Server) connsOf(account core.AccountID) []core.ConnID {
@@ -252,65 +331,77 @@ func (s *Server) connsOf(account core.AccountID) []core.ConnID {
 	return ids
 }
 
-// snapshotFrame asks the cash owner for the account as it is now.
-func (s *Server) snapshotFrame(account core.AccountID) ([]byte, bool) {
+// fetchSnapshot asks the cash owner for the account as it is now.
+func (s *Server) fetchSnapshot(account core.AccountID) ([]byte, uint64, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), snapshotTimeout)
 	defer cancel()
 	snap, err := s.Cash.GetAccount(ctx, account)
 	if err != nil {
 		log.Printf("stream: snapshot for account %d failed: %v", account, err)
-		return nil, false
+		return nil, 0, false
 	}
 	if !snap.Found { // a brand-new account: zero balances, nothing held, nothing open
 		snap = core.AccountSnapshot{Found: true, Account: account}
 	}
-	return snapshotFrame(snap, s.Tick), true
+	return snapshotFrame(snap, s.Tick), snap.Seq, true
 }
 
-func (s *Server) sendSnapshot(id core.ConnID, account core.AccountID) bool {
-	payload, ok := s.snapshotFrame(account)
-	if !ok {
-		return false
-	}
-	s.send(id, payload)
-	return true
-}
-
-// OnUpdate routes one AccountUpdate to every connection of that account. The
-// cash owner sends every account's updates to every gateway; updates for
-// accounts nobody here is listening for are dropped (not ours to keep).
-// It never blocks: Hub.Send drops a slow connection instead of waiting.
 func (s *Server) OnUpdate(u core.AccountUpdate) {
-	ids := s.connsOf(u.Account)
-	if len(ids) == 0 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.byAccount[u.Account]) == 0 {
 		return
 	}
+	limit := s.MaxHeld
+	if limit <= 0 {
+		limit = defaultMaxHeld
+	}
 	payload := updateFrame(u, s.Tick)
-	for _, id := range ids {
-		s.send(id, payload)
+	for id, st := range s.byAccount[u.Account] {
+		switch {
+		case st.dead:
+		case st.holding:
+			if len(st.held) >= limit {
+				s.kill(st) // never drop silently: the client reconnects and gets a fresh snapshot
+			} else {
+				st.held = append(st.held, heldUpdate{u.Seq, payload})
+			}
+		default:
+			s.send(id, payload)
+		}
 	}
 }
 
 // OnLive runs after every (re)connect of the account-updates stream. That
 // stream is live-only, so whatever happened while it was down is lost:
-// re-snapshot every connected user. It returns at once (the reads happen in
-// the background) so the stream's read loop is not held up.
+// re-snapshot every connected user. Holding starts before it returns, so no
+// update after this call can overtake a snapshot; the reads happen in the
+// background so the stream's read loop is not held up.
 func (s *Server) OnLive() {
+	type job struct {
+		id  core.ConnID
+		gen uint64
+	}
+	jobs := map[core.AccountID][]job{}
 	s.mu.Lock()
-	accounts := make([]core.AccountID, 0, len(s.byAccount))
-	for account := range s.byAccount {
-		accounts = append(accounts, account)
+	for account, conns := range s.byAccount {
+		for id, st := range conns {
+			if !st.dead {
+				jobs[account] = append(jobs[account], job{id, s.begin(st)})
+			}
+		}
 	}
 	s.mu.Unlock()
 
-	for _, account := range accounts {
+	for account, js := range jobs {
 		go func() {
-			payload, ok := s.snapshotFrame(account)
-			if !ok {
-				return // the user will see a gap on the next update and resync
-			}
-			for _, id := range s.connsOf(account) {
-				s.send(id, payload)
+			payload, seq, ok := s.fetchSnapshot(account)
+			for _, j := range js {
+				if ok {
+					s.finishSnapshot(j.id, j.gen, payload, seq)
+				} else {
+					s.failSnapshot(j.id, j.gen)
+				}
 			}
 		}()
 	}

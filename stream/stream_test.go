@@ -41,19 +41,27 @@ type fakeCash struct {
 	snaps map[core.AccountID]core.AccountSnapshot
 	err   error
 	calls map[core.AccountID]int
+	hook  func() // runs inside GetAccount, after the snapshot is read; tests block here
 }
 
 func (f *fakeCash) GetAccount(_ context.Context, a core.AccountID) (core.AccountSnapshot, error) {
 	f.mu.Lock()
-	defer f.mu.Unlock()
 	if f.calls == nil {
 		f.calls = map[core.AccountID]int{}
 	}
 	f.calls[a]++
-	if f.err != nil {
-		return core.AccountSnapshot{}, f.err
+	err, snap, hook := f.err, f.snaps[a], f.hook
+	f.mu.Unlock()
+	if hook != nil {
+		hook()
 	}
-	return f.snaps[a], nil
+	return snap, err
+}
+
+func (f *fakeCash) setHook(h func()) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.hook = h
 }
 
 func (f *fakeCash) set(a core.AccountID, s core.AccountSnapshot) {
@@ -355,8 +363,8 @@ func TestSnapshotFailureClosesTheConnection(t *testing.T) {
 	read(t, c)
 	write(t, c, map[string]any{"action": "listen", "data": map[string]any{"streams": []string{"trade_updates"}}})
 	read(t, c) // listening
-	if code := closeCode(t, c); code != websocket.StatusInternalError {
-		t.Errorf("closed with %d, want 1011", code)
+	if code := closeCode(t, c); code != CloseSlowConsumer {
+		t.Errorf("closed with %d, want 4008", code)
 	}
 }
 
@@ -550,4 +558,175 @@ func TestUpdateHelpersDoNotNeedAHub(t *testing.T) {
 		t.Errorf("got %s", b)
 	}
 	var _ = errors.New
+}
+
+// ── updates arriving while a snapshot is in flight ───────────────────────────
+
+// gate makes every GetAccount block (after reading the snapshot) until release().
+type gate struct {
+	entered chan struct{}
+	open    chan struct{}
+}
+
+func newGate(f *fixture) *gate {
+	g := &gate{entered: make(chan struct{}, 8), open: make(chan struct{})}
+	f.cash.setHook(func() {
+		g.entered <- struct{}{}
+		<-g.open
+	})
+	return g
+}
+
+func (g *gate) waitEntered(t *testing.T) {
+	t.Helper()
+	select {
+	case <-g.entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("GetAccount was never called")
+	}
+}
+
+func (g *gate) release() { close(g.open) }
+
+func expectSeq(t *testing.T, c *client, stream string, seq int) {
+	t.Helper()
+	m := read(t, c)
+	if m.Stream != stream || !strings.Contains(string(m.Data), `"account_seq":`+strconv.Itoa(seq)+`,`) {
+		t.Fatalf("want %s seq %d, got %s %s", stream, seq, m.Stream, m.Data)
+	}
+}
+
+// The snapshot says 41; 41, 42, 43 arrive while it is being fetched.
+func deliverWhileBlocked(f *fixture) {
+	f.srv.OnUpdate(fillUpdate(1, 41))
+	f.srv.OnUpdate(fillUpdate(1, 42))
+	f.srv.OnUpdate(fillUpdate(1, 43))
+}
+
+func TestListen_UpdatesDuringTheSnapshotArriveAfterItInOrder(t *testing.T) {
+	f := newFixture(t, 16, time.Second)
+	f.cash.set(1, snap(1, 41, 1000))
+	g := newGate(f)
+	c := f.dial(t)
+	write(t, c, map[string]any{"action": "auth", "key_id": "PK1", "secret": "ok"})
+	read(t, c)
+	write(t, c, map[string]any{"action": "listen", "data": map[string]any{"streams": []string{"trade_updates"}}})
+	if m := read(t, c); m.Stream != "listening" {
+		t.Fatalf("got %+v", m)
+	}
+	g.waitEntered(t)
+	deliverWhileBlocked(f)
+	expectNothing(t, c, "nothing may reach the client before its snapshot")
+	g.release()
+	expectSeq(t, c, "account_snapshot", 41)
+	expectSeq(t, c, "trade_updates", 42)
+	expectSeq(t, c, "trade_updates", 43)
+	expectNothing(t, c, "update 41 is older than the snapshot and must be dropped")
+
+	f.srv.OnUpdate(fillUpdate(1, 44)) // holding is over: live again
+	expectSeq(t, c, "trade_updates", 44)
+}
+
+func TestResync_UpdatesDuringTheSnapshotArriveAfterItInOrder(t *testing.T) {
+	f := newFixture(t, 16, time.Second)
+	f.cash.set(1, snap(1, 30, 1000))
+	c := f.login(t, 1)
+	f.cash.set(1, snap(1, 41, 1000))
+	g := newGate(f)
+	write(t, c, map[string]any{"action": "resync"})
+	g.waitEntered(t)
+	deliverWhileBlocked(f)
+	expectNothing(t, c, "held while the resync snapshot is in flight")
+	g.release()
+	expectSeq(t, c, "account_snapshot", 41)
+	expectSeq(t, c, "trade_updates", 42)
+	expectSeq(t, c, "trade_updates", 43)
+}
+
+func TestOnLive_UpdatesDuringTheSnapshotArriveAfterItInOrder(t *testing.T) {
+	f := newFixture(t, 16, time.Second)
+	f.cash.set(1, snap(1, 30, 1000))
+	c := f.login(t, 1)
+	f.cash.set(1, snap(1, 41, 1000))
+	g := newGate(f)
+	f.srv.OnLive()
+	g.waitEntered(t)
+	deliverWhileBlocked(f)
+	expectNothing(t, c, "held while the reconnect snapshot is in flight")
+	g.release()
+	expectSeq(t, c, "account_snapshot", 41)
+	expectSeq(t, c, "trade_updates", 42)
+	expectSeq(t, c, "trade_updates", 43)
+}
+
+func TestHoldListOverflowClosesWith4008(t *testing.T) {
+	f := newFixture(t, 16, time.Second)
+	f.srv.MaxHeld = 3
+	f.cash.set(1, snap(1, 41, 1000))
+	g := newGate(f)
+	c := f.dial(t)
+	write(t, c, map[string]any{"action": "auth", "key_id": "PK1", "secret": "ok"})
+	read(t, c)
+	write(t, c, map[string]any{"action": "listen", "data": map[string]any{"streams": []string{"trade_updates"}}})
+	g.waitEntered(t)
+	for seq := uint64(42); seq < 46; seq++ { // the 4th does not fit
+		f.srv.OnUpdate(fillUpdate(1, seq))
+	}
+	if code := closeCode(t, c); code != CloseSlowConsumer {
+		t.Fatalf("closed with %d, want 4008", code)
+	}
+	g.release()
+}
+
+func TestSnapshotFailureSendsNoUpdatesAndCloses4008(t *testing.T) {
+	f := newFixture(t, 16, time.Second)
+	f.cash.err = core.ErrNoAnswer
+	g := newGate(f)
+	c := f.dial(t)
+	write(t, c, map[string]any{"action": "auth", "key_id": "PK1", "secret": "ok"})
+	read(t, c)
+	write(t, c, map[string]any{"action": "listen", "data": map[string]any{"streams": []string{"trade_updates"}}})
+	g.waitEntered(t)
+	deliverWhileBlocked(f)
+	g.release()
+	for {
+		select {
+		case m := <-c.frames:
+			if m.Stream == "trade_updates" || m.Stream == "account_snapshot" {
+				t.Fatalf("a client without a snapshot got %s", m.Stream)
+			}
+			continue
+		case code := <-c.ended:
+			if code != CloseSlowConsumer {
+				t.Fatalf("closed with %d, want 4008", code)
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatal("not closed")
+		}
+		break
+	}
+}
+
+// Resync while an OnLive snapshot is in flight: the later snapshot wins, the older result is discarded.
+func TestLaterSnapshotSupersedesAnOlderOneInFlight(t *testing.T) {
+	f := newFixture(t, 16, time.Second)
+	f.cash.set(1, snap(1, 30, 1000))
+	c := f.login(t, 1)
+
+	f.cash.set(1, snap(1, 40, 1000))
+	g1 := newGate(f)
+	f.srv.OnLive() // snapshot A (seq 40) blocks
+	g1.waitEntered(t)
+
+	f.cash.set(1, snap(1, 41, 1000))
+	g2 := newGate(f)
+	write(t, c, map[string]any{"action": "resync"}) // snapshot B (seq 41) blocks too
+	g2.waitEntered(t)
+	f.srv.OnUpdate(fillUpdate(1, 42))
+
+	g2.release()
+	expectSeq(t, c, "account_snapshot", 41)
+	expectSeq(t, c, "trade_updates", 42)
+	g1.release() // the older result finally returns
+	expectNothing(t, c, "the superseded snapshot must be discarded")
 }
