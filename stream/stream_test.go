@@ -362,7 +362,7 @@ func TestSnapshotFailureClosesTheConnection(t *testing.T) {
 	write(t, c, map[string]any{"action": "auth", "key_id": "PK1", "secret": "ok"})
 	read(t, c)
 	write(t, c, map[string]any{"action": "listen", "data": map[string]any{"streams": []string{"trade_updates"}}})
-	read(t, c) // listening
+	// "listening" may or may not beat the close; either way the end is 4008.
 	if code := closeCode(t, c); code != CloseSlowConsumer {
 		t.Errorf("closed with %d, want 4008", code)
 	}
