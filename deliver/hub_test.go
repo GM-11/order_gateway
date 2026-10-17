@@ -211,3 +211,59 @@ func TestToWireEngineRejectHasReasonAndOrderID(t *testing.T) {
 		t.Fatalf("got  %s\nwant %s", got, want)
 	}
 }
+
+type slowAwareSocket struct {
+	*fakeSocket
+	slowClosed chan struct{}
+}
+
+func (s *slowAwareSocket) CloseSlow() error {
+	close(s.slowClosed)
+	return s.fakeSocket.Close()
+}
+
+func TestRawMessageIsWrittenAsIs(t *testing.T) {
+	h := NewHub(2)
+	s := newFake(false)
+	h.Add(1, s)
+	h.Send(1, core.OutMsg{Kind: core.MsgRaw, Payload: []byte(`{"stream":"x"}`)})
+	select {
+	case got := <-s.written:
+		if string(got) != `{"stream":"x"}` {
+			t.Fatalf("wrote %q", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("nothing written")
+	}
+}
+
+// A full outbox closes the socket through CloseSlow when it has one (the
+// trading stream uses it to close with 4008); an ordinary Remove does not.
+func TestOverflowUsesCloseSlowButRemoveDoesNot(t *testing.T) {
+	h := NewHub(1)
+	slow := &slowAwareSocket{fakeSocket: newFake(true), slowClosed: make(chan struct{})}
+	h.Add(1, slow)
+	for range 10 {
+		h.Send(1, core.OutMsg{Kind: core.MsgRaw, Payload: []byte("x")})
+	}
+	select {
+	case <-slow.slowClosed:
+	case <-time.After(time.Second):
+		t.Fatal("overflow did not go through CloseSlow")
+	}
+
+	h2 := NewHub(1)
+	calm := &slowAwareSocket{fakeSocket: newFake(false), slowClosed: make(chan struct{})}
+	h2.Add(2, calm)
+	h2.Remove(2)
+	select {
+	case <-calm.closed:
+	case <-time.After(time.Second):
+		t.Fatal("Remove did not close")
+	}
+	select {
+	case <-calm.slowClosed:
+		t.Fatal("a plain Remove must not count as slow")
+	default:
+	}
+}

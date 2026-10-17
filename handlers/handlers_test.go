@@ -34,6 +34,16 @@ func (m *mockSymbols) Lookup(ticker string) (refdata.Instrument, bool) {
 	return inst, ok
 }
 
+func (m *mockSymbols) ByID(id core.SymbolID) (refdata.Instrument, bool) {
+	for ticker, inst := range m.instruments {
+		if inst.ID == id {
+			inst.Ticker = ticker
+			return inst, true
+		}
+	}
+	return refdata.Instrument{}, false
+}
+
 type mockPlacer struct {
 	lastReq *core.OrderRequest
 	result  core.Result
@@ -222,8 +232,10 @@ func TestValidation_InvalidFields(t *testing.T) {
 		{"unknown symbol", func(r *placeOrderRequest) { r.Symbol = "NOPE" }, "symbol"},
 		{"uppercase side BUY", func(r *placeOrderRequest) { r.Side = "BUY" }, "side"},
 		{"invalid side hold", func(r *placeOrderRequest) { r.Side = "hold" }, "side"},
-		{"type market", func(r *placeOrderRequest) { r.Type = "market" }, "type"},
-		{"time_in_force ioc", func(r *placeOrderRequest) { r.TimeInForce = "ioc" }, "time_in_force"},
+		{"type unknown", func(r *placeOrderRequest) { r.Type = "iceberg" }, "type"},
+		{"type uppercase", func(r *placeOrderRequest) { r.Type = "LIMIT" }, "type"},
+		{"time_in_force unknown", func(r *placeOrderRequest) { r.TimeInForce = "fok" }, "time_in_force"},
+		{"stop_price on a limit order", func(r *placeOrderRequest) { s := "99.00"; r.StopPrice = &s }, "stop_price"},
 		{"price 0.00", func(r *placeOrderRequest) { r.Price = "0.00" }, "price"},
 		{"price negative", func(r *placeOrderRequest) { r.Price = "-1.00" }, "price"},
 		{"price 3 decimals", func(r *placeOrderRequest) { r.Price = "101.505" }, "price"},
@@ -245,6 +257,9 @@ func TestValidation_InvalidFields(t *testing.T) {
 			var resp errorResponse
 			if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 				t.Fatalf("decode response: %v", err)
+			}
+			if resp.Error != "invalid_field" {
+				t.Errorf("want error=invalid_field, got %q", resp.Error)
 			}
 			if resp.Field != tt.field {
 				t.Errorf("want field=%q, got %q", tt.field, resp.Field)
@@ -280,8 +295,8 @@ func TestHappyPath_Placed(t *testing.T) {
 	if resp.Status != "new" {
 		t.Errorf("want status=new, got %q", resp.Status)
 	}
-	if resp.OrderID != "999" {
-		t.Errorf("want order_id=999, got %q", resp.OrderID)
+	if resp.OrderID != "1-999" {
+		t.Errorf("want order_id=1-999 (<symbol_id>-<seq>), got %q", resp.OrderID)
 	}
 	if resp.ClientOrderID != "ord-1" {
 		t.Errorf("want client_order_id=ord-1, got %q", resp.ClientOrderID)

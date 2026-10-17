@@ -22,6 +22,8 @@ type Result struct {
 	OrderID        OrderID
 	Reason         RejectReason
 	ShortfallMinor int64
+	EngineReject   EngineReject // OutcomeEngineRejected only
+	Order          *OrderState  // OutcomeDuplicate only: the order as it stands now
 }
 
 var ErrDuplicateInFlight = errors.New("same client_order_id is still in flight")
@@ -37,6 +39,7 @@ const (
 	OutcomeCashRejected Outcome = iota + 1
 	OutcomePlaced
 	OutcomeEngineRejected
+	OutcomeDuplicate // this (account, client_order_id) was seen before and has an order id
 )
 
 type OrderRequest struct {
@@ -56,12 +59,19 @@ const (
 	ReasonInsufficientHoldings
 	ReasonEngineRejected
 	ReasonUnknown
+	ReasonUnknownAccount
+	ReasonExchangeBusy // not placed, safe to retry
+	ReasonUnknownSymbol
+	ReasonExchangeUnavailable // not placed, safe to retry
+	ReasonNotSupported
 )
 
 type Acknowledge struct {
 	Accepted       bool
 	Reason         RejectReason
 	ShortFallMinor int64
+	Duplicate      bool        // this (account, client_order_id) was seen before
+	Order          *OrderState // set when Duplicate: the order as it stands now
 }
 
 var ErrNoAnswer = errors.New("no answer before deadline, outcome unknown")
@@ -75,6 +85,7 @@ type MsgKind uint8
 const (
 	MsgRejected MsgKind = iota + 1
 	MsgOrderResult
+	MsgRaw // Payload is a ready-made frame, sent as is (the trading stream builds its own JSON)
 )
 
 type OutMsg struct {
@@ -83,6 +94,7 @@ type OutMsg struct {
 	OrderID        OrderID
 	Reason         RejectReason
 	ShortfallMinor int64
+	Payload        []byte // MsgRaw only
 }
 
 type Sender interface {
@@ -94,6 +106,7 @@ type EngineReply struct {
 	ClientOrderID ClientOrderID
 	OrderID       OrderID
 	Rejected      bool
+	EngineReject  EngineReject // meaningful when Rejected
 }
 
 type requestKey struct {
@@ -145,6 +158,14 @@ func (g *Gateway) Place(ctx context.Context, req OrderRequest) (Result, error) {
 		g.forget(key)
 		return Result{}, ErrNoAnswer
 
+	case ack.Duplicate:
+		// Seen before: no engine Reply will come for this call, so don't wait for one.
+		g.forget(key)
+		if ack.Order != nil && ack.Order.OrderID != 0 {
+			return Result{Outcome: OutcomeDuplicate, Order: ack.Order}, nil
+		}
+		return Result{}, ErrDuplicateInFlight
+
 	case !ack.Accepted:
 		g.forget(key)
 		return Result{Outcome: OutcomeCashRejected, Reason: ack.Reason, ShortfallMinor: ack.ShortFallMinor}, nil
@@ -166,6 +187,9 @@ func (g *Gateway) forget(key requestKey) {
 }
 
 func (g *Gateway) OnReply(r EngineReply) {
+	if r.ClientOrderID == "" {
+		return // a cancel/modify answer: nobody is waiting for it here
+	}
 	key := requestKey{r.AccountID, r.ClientOrderID}
 
 	g.mu.Lock()
@@ -181,6 +205,7 @@ func (g *Gateway) OnReply(r EngineReply) {
 	res := Result{Outcome: OutcomePlaced, OrderID: r.OrderID}
 	if r.Rejected {
 		res.Outcome = OutcomeEngineRejected
+		res.EngineReject = r.EngineReject
 	}
 	e.mailbox <- res
 }

@@ -105,6 +105,9 @@ func jitter(d time.Duration) time.Duration {
 }
 
 func replyFromProto(p *pb.Reply) (core.EngineReply, bool) {
+	if p != nil && p.GetClientOrderId() == "" {
+		return core.EngineReply{}, false // a cancel/modify answer: results reach users via AccountUpdate
+	}
 	if p == nil || p.GetRejectReason() == pb.RejectReason_REJECT_REASON_UNSPECIFIED {
 		log.Printf("upstream: dropping engine reply with unspecified reject reason")
 		return core.EngineReply{}, false
@@ -114,5 +117,6 @@ func replyFromProto(p *pb.Reply) (core.EngineReply, bool) {
 		ClientOrderID: core.ClientOrderID(p.GetClientOrderId()),
 		OrderID:       core.OrderID(p.GetOrderId()),
 		Rejected:      p.GetRejectReason() != pb.RejectReason_REJECT_REASON_NONE,
+		EngineReject:  engineRejectFromProto(p.GetRejectReason()),
 	}, true
 }

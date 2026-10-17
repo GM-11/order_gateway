@@ -236,3 +236,82 @@ func TestSameIDDifferentAccountsAreSeparate(t *testing.T) {
 		t.Fatalf("Bob got %+v, want order 9002", p.res)
 	}
 }
+
+// ---- duplicates (PlaceOrderAck.duplicate) ----
+
+// The cash owner has seen this (account, id) and knows the order: answer from
+// it at once. No engine Reply will come, so nothing waits for one.
+func TestDuplicateWithOrderIDAnswersFromTheKnownOrder(t *testing.T) {
+	known := &OrderState{Account: 7, ClientOrderID: "c-555", Symbol: 1, OrderID: 812, Qty: 50, FilledQty: 20, Status: StatusPartiallyFilled}
+	gw := setup(&fakeCash{ack: Acknowledge{Accepted: false, Duplicate: true, Order: known}})
+
+	res, err := gw.Place(context.Background(), alice)
+
+	if err != nil || res.Outcome != OutcomeDuplicate || res.Order == nil || res.Order.OrderID != 812 || res.Order.FilledQty != 20 {
+		t.Fatalf("got %+v / %v, want OutcomeDuplicate carrying the known order", res, err)
+	}
+	if n := pendingCount(gw); n != 0 {
+		t.Fatalf("duplicate answered: note must be gone, have %d", n)
+	}
+}
+
+// accepted == true together with duplicate is still a duplicate: never wait for a Reply that will not come.
+func TestDuplicateWinsOverAccepted(t *testing.T) {
+	known := &OrderState{OrderID: 812}
+	gw := setup(&fakeCash{ack: Acknowledge{Accepted: true, Duplicate: true, Order: known}})
+	res, err := gw.Place(context.Background(), alice)
+	if err != nil || res.Outcome != OutcomeDuplicate {
+		t.Fatalf("got %+v / %v", res, err)
+	}
+}
+
+// Duplicate but the order has no id yet (the original is still in flight elsewhere).
+func TestDuplicateWithoutOrderIDIsDuplicateInFlight(t *testing.T) {
+	for name, order := range map[string]*OrderState{"nil order": nil, "order_id 0": {OrderID: 0}} {
+		gw := setup(&fakeCash{ack: Acknowledge{Duplicate: true, Order: order}})
+
+		_, err := gw.Place(context.Background(), alice)
+
+		if !errors.Is(err, ErrDuplicateInFlight) {
+			t.Fatalf("%s: err = %v, want ErrDuplicateInFlight", name, err)
+		}
+		if n := pendingCount(gw); n != 0 {
+			t.Fatalf("%s: note must be gone, have %d", name, n)
+		}
+		// and a retry is not blocked by a leftover note
+		if _, err := gw.Place(context.Background(), alice); !errors.Is(err, ErrDuplicateInFlight) {
+			t.Fatalf("%s: retry err = %v", name, err)
+		}
+	}
+}
+
+// ---- engine replies ----
+
+// A cancel/modify answer has an empty client_order_id: no pending lookup, nothing changes.
+func TestReplyWithEmptyClientOrderIDIsIgnored(t *testing.T) {
+	submitted := make(chan struct{})
+	gw := setup(&fakeCash{ack: Acknowledge{Accepted: true}, onSubmit: func(context.Context) { close(submitted) }})
+	done := placeAsync(gw, context.Background(), alice)
+	<-submitted
+
+	gw.OnReply(EngineReply{AccountID: 7, ClientOrderID: "", OrderID: 9001})
+	if n := pendingCount(gw); n != 1 {
+		t.Fatalf("an empty-id reply must not touch the pending order, have %d notes", n)
+	}
+
+	gw.OnReply(EngineReply{AccountID: 7, ClientOrderID: "c-555", OrderID: 9001})
+	if p := wait(t, done); p.res.OrderID != 9001 {
+		t.Fatalf("got %+v", p.res)
+	}
+}
+
+func TestEngineRejectReasonIsCarriedThrough(t *testing.T) {
+	submitted := make(chan struct{})
+	gw := setup(&fakeCash{ack: Acknowledge{Accepted: true}, onSubmit: func(context.Context) { close(submitted) }})
+	done := placeAsync(gw, context.Background(), alice)
+	<-submitted
+	gw.OnReply(EngineReply{AccountID: 7, ClientOrderID: "c-555", OrderID: 9001, Rejected: true, EngineReject: EngineRejectPriceBand})
+	if p := wait(t, done); p.res.EngineReject != EngineRejectPriceBand {
+		t.Fatalf("got %+v, want the price_band reason kept", p.res)
+	}
+}

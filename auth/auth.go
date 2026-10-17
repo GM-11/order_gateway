@@ -37,8 +37,8 @@ var (
 )
 
 func FromRequest(r *http.Request) Credentials {
-	KeyID := r.Header.Get("API_KEY_ID")
-	Secret := r.Header.Get("API_SECRET")
+	KeyID := r.Header.Get("X-Api-Key-Id")
+	Secret := r.Header.Get("X-Api-Secret")
 	h := r.Header.Get("Authorization")
 	bearer := ""
 	if len(h) > 7 && strings.EqualFold(h[:7], "Bearer ") {

@@ -52,6 +52,13 @@ func TestLoad(t *testing.T) {
 			if _, ok := table.Lookup("GOOGL"); ok {
 				t.Error(`Lookup("GOOGL") returned true, want false`)
 			}
+			back, ok := table.ByID(1)
+			if !ok || back.Ticker != "MOOG" {
+				t.Errorf("ByID(1) = %+v, %v; want MOOG", back, ok)
+			}
+			if _, ok := table.ByID(99); ok {
+				t.Error("ByID(99) returned true, want false")
+			}
 		})
 	}
 }

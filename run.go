@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"order_gateway/auth"
 	"order_gateway/core"
+	"order_gateway/deliver"
 	pb "order_gateway/gen/exchange/v1"
 	"order_gateway/handlers"
 	"order_gateway/refdata"
+	"order_gateway/stream"
 	"order_gateway/upstream"
 	"sort"
 	"strings"
@@ -58,19 +60,31 @@ func run(ctx context.Context, cfg config, log *slog.Logger) error {
 	readerDone := make(chan error, 1)
 	go func() { readerDone <- reader.Serve(bg) }()
 
+	tick := func(id core.SymbolID) (string, bool) {
+		inst, ok := symbols.ByID(id)
+		return inst.Ticker, ok
+	}
+	trading := &stream.Server{
+		Auth:           chain,
+		Cash:           cash,
+		Hub:            deliver.NewHub(streamOutbox),
+		Tick:           tick,
+		OriginPatterns: cfg.StreamOrigins,
+	}
+	updates := upstream.NewAccountUpdatesReader(pb.NewCashOwnerClient(cashConn), cfg.GatewayID, trading.OnUpdate, trading.OnLive)
+	updatesDone := make(chan error, 1)
+	go func() { updatesDone <- updates.Serve(bg) }()
+
 	mux := http.NewServeMux()
-	mux.Handle("POST /v2/orders", &handlers.Orders{
-		Auth:     chain,
-		Symbols:  symbols,
-		Placer:   gw,
-		FeedLive: reader.Live,
-	})
+	registerRoutes(mux, chain, symbols, gw, cash, reader.Live)
+	mux.Handle("GET /v2/stream", trading)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("ok\n"))
 	})
 	mux.Handle("GET /readyz", readyHandler(map[string]func() bool{
-		"auth":        chain.Ready,
-		"engine_feed": reader.Live,
+		"auth":            chain.Ready,
+		"engine_feed":     reader.Live,
+		"account_updates": updates.Live,
 	}))
 
 	srv := &http.Server{
@@ -99,7 +113,7 @@ func run(ctx context.Context, cfg config, log *slog.Logger) error {
 	)
 
 	var runErr error
-	readerExited := false
+	readerExited, updatesExited := false, false
 	select {
 	case <-ctx.Done():
 		log.Info("shutting down")
@@ -108,6 +122,9 @@ func run(ctx context.Context, cfg config, log *slog.Logger) error {
 	case err := <-readerDone:
 		readerExited = true
 		runErr = fmt.Errorf("engine feed reader: %w", err)
+	case err := <-updatesDone:
+		updatesExited = true
+		runErr = fmt.Errorf("account updates reader: %w", err)
 	}
 
 	drainCtx, cancel := context.WithTimeout(context.Background(), cfg.OrderTimeout+5*time.Second)
@@ -118,6 +135,9 @@ func run(ctx context.Context, cfg config, log *slog.Logger) error {
 	stopBG()
 	if !readerExited {
 		<-readerDone
+	}
+	if !updatesExited {
+		<-updatesDone
 	}
 	log.Info("stopped")
 	return runErr
@@ -153,4 +173,25 @@ func readyHandler(checks map[string]func() bool) http.HandlerFunc {
 		}
 		_, _ = w.Write([]byte("ok\n"))
 	}
+}
+
+// streamOutbox is how many frames a trading-stream connection may have queued
+// before it counts as too slow to read and is disconnected (4008).
+const streamOutbox = 256
+
+// registerRoutes wires every REST endpoint of contract 3.2. Go 1.22+ patterns:
+// "/v2/orders:by_client_order_id" is a different path from "/v2/orders/{order_id}",
+// so the two never compete.
+func registerRoutes(mux *http.ServeMux, v auth.Verifier, symbols *refdata.Table, placer handlers.Placer, cash handlers.Cash, feedLive func() bool) {
+	mux.Handle("POST /v2/orders", &handlers.Orders{Auth: v, Symbols: symbols, Placer: placer, FeedLive: feedLive})
+	t := &handlers.Trading{Auth: v, Symbols: symbols, Cash: cash}
+	mux.HandleFunc("GET /v2/orders", t.ListOrders)
+	mux.HandleFunc("GET /v2/orders:by_client_order_id", t.GetOrderByClientOrderID)
+	mux.HandleFunc("GET /v2/orders/{order_id}", t.GetOrder)
+	mux.HandleFunc("DELETE /v2/orders/{order_id}", t.CancelOrder)
+	mux.HandleFunc("PATCH /v2/orders/{order_id}", t.NotSupportedYet) // [later]
+	mux.HandleFunc("DELETE /v2/orders", t.NotSupportedYet)           // [later]
+	mux.HandleFunc("GET /v2/account", t.Account)
+	mux.HandleFunc("GET /v2/positions", t.Positions)
+	mux.HandleFunc("GET /v2/positions/{symbol}", t.Position)
 }

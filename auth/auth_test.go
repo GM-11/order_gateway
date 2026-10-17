@@ -12,9 +12,18 @@ func TestFromRequest(t *testing.T) {
 		want Credentials
 	}{
 		{name: "API key headers only", set: func(w *httptest.ResponseRecorder) {
+			w.Header().Set("X-Api-Key-Id", "key-a")
+			w.Header().Set("X-Api-Secret", "secret-a")
+		}, want: Credentials{KeyID: "key-a", Secret: "secret-a"}},
+		{name: "old underscore headers are no longer read", set: func(w *httptest.ResponseRecorder) {
 			w.Header().Set("API_KEY_ID", "key-a")
 			w.Header().Set("API_SECRET", "secret-a")
-		}, want: Credentials{KeyID: "key-a", Secret: "secret-a"}},
+		}, want: Credentials{}},
+		{name: "API key headers and Bearer together are both reported", set: func(w *httptest.ResponseRecorder) {
+			w.Header().Set("x-api-key-id", "key-a")
+			w.Header().Set("X-API-SECRET", "secret-a")
+			w.Header().Set("Authorization", "Bearer token-a")
+		}, want: Credentials{KeyID: "key-a", Secret: "secret-a", Bearer: "token-a"}},
 		{name: "Bearer header only", set: func(w *httptest.ResponseRecorder) {
 			w.Header().Set("Authorization", "Bearer token-a")
 		}, want: Credentials{Bearer: "token-a"}},

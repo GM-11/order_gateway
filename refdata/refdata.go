@@ -19,6 +19,7 @@ type Instrument struct {
 type Table struct {
 	Version  uint64
 	byTicker map[string]Instrument
+	byID     map[core.SymbolID]Instrument
 }
 
 func Load(path string) (*Table, error) {
@@ -59,6 +60,7 @@ func Load(path string) (*Table, error) {
 	t := &Table{
 		Version:  file.Version,
 		byTicker: make(map[string]Instrument, len(file.Instruments)),
+		byID:     make(map[core.SymbolID]Instrument, len(file.Instruments)),
 	}
 	seenIDs := make(map[core.SymbolID]struct{}, len(file.Instruments))
 	for i, input := range file.Instruments {
@@ -92,10 +94,17 @@ func Load(path string) (*Table, error) {
 
 		inst := Instrument{ID: input.ID, Ticker: input.Ticker, Partition: input.Partition, BandBps: input.BandBps}
 		t.byTicker[inst.Ticker] = inst
+		t.byID[inst.ID] = inst
 	}
 	return t, nil
 }
 func (t *Table) Lookup(ticker string) (Instrument, bool) {
 	inst, ok := t.byTicker[ticker]
+	return inst, ok
+}
+
+// ByID is the reverse of Lookup: from the number used inside the system back to the ticker.
+func (t *Table) ByID(id core.SymbolID) (Instrument, bool) {
+	inst, ok := t.byID[id]
 	return inst, ok
 }

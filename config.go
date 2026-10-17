@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type config struct {
 	JWTIssuer      string
 	JWTAudience    string
 	OrderTimeout   time.Duration
+	StreamOrigins  []string // browser origins allowed on /v2/stream besides same-host, e.g. "app.example.com"
 }
 
 func loadConfig(getenv func(string) string) (config, error) {
@@ -36,6 +38,12 @@ func loadConfig(getenv func(string) string) (config, error) {
 		JWKSURL:        getenv("JWKS_URL"),
 		JWTIssuer:      getenv("JWT_ISSUER"),
 		JWTAudience:    getenv("JWT_AUDIENCE"),
+	}
+
+	for _, o := range strings.Split(getenv("STREAM_ORIGINS"), ",") {
+		if o = strings.TrimSpace(o); o != "" {
+			c.StreamOrigins = append(c.StreamOrigins, o)
+		}
 	}
 
 	var errs []error
