@@ -1,9 +1,5 @@
 package core
 
-// Plain-Go mirrors of the cash owner's read and stream messages. The upstream
-// adapters translate proto <-> these; nothing outside upstream/ sees proto.
-// Money is integer minor units (paise), never floats.
-
 type EngineReject uint8
 
 const (

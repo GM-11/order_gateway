@@ -11,9 +11,6 @@ type Socket interface {
 	Close() error
 }
 
-// SlowCloser is optional. A socket that has it is closed through it, instead
-// of Close, when the Hub drops it because its outbox was full (the trading
-// WebSocket closes with code 4008 that way).
 type SlowCloser interface {
 	CloseSlow() error
 }

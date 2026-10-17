@@ -10,9 +10,6 @@ import (
 	"order_gateway/wire"
 )
 
-// Cash is what the read and cancel endpoints need from the cash owner. Reads
-// come from the cash owner (not a copy) so they line up exactly with the
-// trading stream's account_seq.
 type Cash interface {
 	GetAccount(ctx context.Context, account core.AccountID) (core.AccountSnapshot, error)
 	GetOrders(ctx context.Context, q core.OrdersQuery) ([]core.OrderState, error)
