@@ -19,7 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CashOwner_PlaceOrder_FullMethodName = "/exchange.v1.CashOwner/PlaceOrder"
+	CashOwner_PlaceOrder_FullMethodName              = "/exchange.v1.CashOwner/PlaceOrder"
+	CashOwner_CancelOrder_FullMethodName             = "/exchange.v1.CashOwner/CancelOrder"
+	CashOwner_ModifyOrder_FullMethodName             = "/exchange.v1.CashOwner/ModifyOrder"
+	CashOwner_GetAccount_FullMethodName              = "/exchange.v1.CashOwner/GetAccount"
+	CashOwner_GetOrders_FullMethodName               = "/exchange.v1.CashOwner/GetOrders"
+	CashOwner_SubscribeAccountUpdates_FullMethodName = "/exchange.v1.CashOwner/SubscribeAccountUpdates"
+	CashOwner_Deposit_FullMethodName                 = "/exchange.v1.CashOwner/Deposit"
+	CashOwner_Withdraw_FullMethodName                = "/exchange.v1.CashOwner/Withdraw"
 )
 
 // CashOwnerClient is the client API for CashOwner service.
@@ -27,6 +34,13 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CashOwnerClient interface {
 	PlaceOrder(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (*PlaceOrderAck, error)
+	CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*CancelOrderAck, error)
+	ModifyOrder(ctx context.Context, in *ModifyOrderRequest, opts ...grpc.CallOption) (*ModifyOrderAck, error)
+	GetAccount(ctx context.Context, in *GetAccountRequest, opts ...grpc.CallOption) (*AccountSnapshot, error)
+	GetOrders(ctx context.Context, in *GetOrdersRequest, opts ...grpc.CallOption) (*GetOrdersResponse, error)
+	SubscribeAccountUpdates(ctx context.Context, in *AccountUpdatesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AccountUpdate], error)
+	Deposit(ctx context.Context, in *TransferRequest, opts ...grpc.CallOption) (*TransferAck, error)
+	Withdraw(ctx context.Context, in *TransferRequest, opts ...grpc.CallOption) (*TransferAck, error)
 }
 
 type cashOwnerClient struct {
@@ -47,11 +61,97 @@ func (c *cashOwnerClient) PlaceOrder(ctx context.Context, in *PlaceOrderRequest,
 	return out, nil
 }
 
+func (c *cashOwnerClient) CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*CancelOrderAck, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelOrderAck)
+	err := c.cc.Invoke(ctx, CashOwner_CancelOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cashOwnerClient) ModifyOrder(ctx context.Context, in *ModifyOrderRequest, opts ...grpc.CallOption) (*ModifyOrderAck, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ModifyOrderAck)
+	err := c.cc.Invoke(ctx, CashOwner_ModifyOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cashOwnerClient) GetAccount(ctx context.Context, in *GetAccountRequest, opts ...grpc.CallOption) (*AccountSnapshot, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountSnapshot)
+	err := c.cc.Invoke(ctx, CashOwner_GetAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cashOwnerClient) GetOrders(ctx context.Context, in *GetOrdersRequest, opts ...grpc.CallOption) (*GetOrdersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOrdersResponse)
+	err := c.cc.Invoke(ctx, CashOwner_GetOrders_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cashOwnerClient) SubscribeAccountUpdates(ctx context.Context, in *AccountUpdatesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AccountUpdate], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &CashOwner_ServiceDesc.Streams[0], CashOwner_SubscribeAccountUpdates_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[AccountUpdatesRequest, AccountUpdate]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CashOwner_SubscribeAccountUpdatesClient = grpc.ServerStreamingClient[AccountUpdate]
+
+func (c *cashOwnerClient) Deposit(ctx context.Context, in *TransferRequest, opts ...grpc.CallOption) (*TransferAck, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TransferAck)
+	err := c.cc.Invoke(ctx, CashOwner_Deposit_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cashOwnerClient) Withdraw(ctx context.Context, in *TransferRequest, opts ...grpc.CallOption) (*TransferAck, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TransferAck)
+	err := c.cc.Invoke(ctx, CashOwner_Withdraw_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CashOwnerServer is the server API for CashOwner service.
 // All implementations must embed UnimplementedCashOwnerServer
 // for forward compatibility.
 type CashOwnerServer interface {
 	PlaceOrder(context.Context, *PlaceOrderRequest) (*PlaceOrderAck, error)
+	CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderAck, error)
+	ModifyOrder(context.Context, *ModifyOrderRequest) (*ModifyOrderAck, error)
+	GetAccount(context.Context, *GetAccountRequest) (*AccountSnapshot, error)
+	GetOrders(context.Context, *GetOrdersRequest) (*GetOrdersResponse, error)
+	SubscribeAccountUpdates(*AccountUpdatesRequest, grpc.ServerStreamingServer[AccountUpdate]) error
+	Deposit(context.Context, *TransferRequest) (*TransferAck, error)
+	Withdraw(context.Context, *TransferRequest) (*TransferAck, error)
 	mustEmbedUnimplementedCashOwnerServer()
 }
 
@@ -64,6 +164,27 @@ type UnimplementedCashOwnerServer struct{}
 
 func (UnimplementedCashOwnerServer) PlaceOrder(context.Context, *PlaceOrderRequest) (*PlaceOrderAck, error) {
 	return nil, status.Error(codes.Unimplemented, "method PlaceOrder not implemented")
+}
+func (UnimplementedCashOwnerServer) CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderAck, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelOrder not implemented")
+}
+func (UnimplementedCashOwnerServer) ModifyOrder(context.Context, *ModifyOrderRequest) (*ModifyOrderAck, error) {
+	return nil, status.Error(codes.Unimplemented, "method ModifyOrder not implemented")
+}
+func (UnimplementedCashOwnerServer) GetAccount(context.Context, *GetAccountRequest) (*AccountSnapshot, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAccount not implemented")
+}
+func (UnimplementedCashOwnerServer) GetOrders(context.Context, *GetOrdersRequest) (*GetOrdersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetOrders not implemented")
+}
+func (UnimplementedCashOwnerServer) SubscribeAccountUpdates(*AccountUpdatesRequest, grpc.ServerStreamingServer[AccountUpdate]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeAccountUpdates not implemented")
+}
+func (UnimplementedCashOwnerServer) Deposit(context.Context, *TransferRequest) (*TransferAck, error) {
+	return nil, status.Error(codes.Unimplemented, "method Deposit not implemented")
+}
+func (UnimplementedCashOwnerServer) Withdraw(context.Context, *TransferRequest) (*TransferAck, error) {
+	return nil, status.Error(codes.Unimplemented, "method Withdraw not implemented")
 }
 func (UnimplementedCashOwnerServer) mustEmbedUnimplementedCashOwnerServer() {}
 func (UnimplementedCashOwnerServer) testEmbeddedByValue()                   {}
@@ -104,6 +225,125 @@ func _CashOwner_PlaceOrder_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CashOwner_CancelOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CashOwnerServer).CancelOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CashOwner_CancelOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CashOwnerServer).CancelOrder(ctx, req.(*CancelOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CashOwner_ModifyOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModifyOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CashOwnerServer).ModifyOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CashOwner_ModifyOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CashOwnerServer).ModifyOrder(ctx, req.(*ModifyOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CashOwner_GetAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CashOwnerServer).GetAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CashOwner_GetAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CashOwnerServer).GetAccount(ctx, req.(*GetAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CashOwner_GetOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrdersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CashOwnerServer).GetOrders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CashOwner_GetOrders_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CashOwnerServer).GetOrders(ctx, req.(*GetOrdersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CashOwner_SubscribeAccountUpdates_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(AccountUpdatesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CashOwnerServer).SubscribeAccountUpdates(m, &grpc.GenericServerStream[AccountUpdatesRequest, AccountUpdate]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CashOwner_SubscribeAccountUpdatesServer = grpc.ServerStreamingServer[AccountUpdate]
+
+func _CashOwner_Deposit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TransferRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CashOwnerServer).Deposit(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CashOwner_Deposit_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CashOwnerServer).Deposit(ctx, req.(*TransferRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CashOwner_Withdraw_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TransferRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CashOwnerServer).Withdraw(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CashOwner_Withdraw_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CashOwnerServer).Withdraw(ctx, req.(*TransferRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CashOwner_ServiceDesc is the grpc.ServiceDesc for CashOwner service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -115,7 +355,37 @@ var CashOwner_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "PlaceOrder",
 			Handler:    _CashOwner_PlaceOrder_Handler,
 		},
+		{
+			MethodName: "CancelOrder",
+			Handler:    _CashOwner_CancelOrder_Handler,
+		},
+		{
+			MethodName: "ModifyOrder",
+			Handler:    _CashOwner_ModifyOrder_Handler,
+		},
+		{
+			MethodName: "GetAccount",
+			Handler:    _CashOwner_GetAccount_Handler,
+		},
+		{
+			MethodName: "GetOrders",
+			Handler:    _CashOwner_GetOrders_Handler,
+		},
+		{
+			MethodName: "Deposit",
+			Handler:    _CashOwner_Deposit_Handler,
+		},
+		{
+			MethodName: "Withdraw",
+			Handler:    _CashOwner_Withdraw_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeAccountUpdates",
+			Handler:       _CashOwner_SubscribeAccountUpdates_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "exchange/v1/cash_owner.proto",
 }

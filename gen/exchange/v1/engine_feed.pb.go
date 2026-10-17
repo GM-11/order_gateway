@@ -37,6 +37,8 @@ const (
 	EventKind_EVENT_KIND_STOP_MODIFIED  EventKind = 10
 	EventKind_EVENT_KIND_HALTED         EventKind = 11
 	EventKind_EVENT_KIND_RESUMED        EventKind = 12
+	EventKind_EVENT_KIND_REJECTED       EventKind = 13 // new order / new stop refused by the engine (never on the book)
+	EventKind_EVENT_KIND_EXPIRED        EventKind = 14 // unfilled remainder discarded (market / IOC) — quantity = the discarded amount
 )
 
 // Enum value maps for EventKind.
@@ -55,6 +57,8 @@ var (
 		10: "EVENT_KIND_STOP_MODIFIED",
 		11: "EVENT_KIND_HALTED",
 		12: "EVENT_KIND_RESUMED",
+		13: "EVENT_KIND_REJECTED",
+		14: "EVENT_KIND_EXPIRED",
 	}
 	EventKind_value = map[string]int32{
 		"EVENT_KIND_UNSPECIFIED":    0,
@@ -70,6 +74,8 @@ var (
 		"EVENT_KIND_STOP_MODIFIED":  10,
 		"EVENT_KIND_HALTED":         11,
 		"EVENT_KIND_RESUMED":        12,
+		"EVENT_KIND_REJECTED":       13,
+		"EVENT_KIND_EXPIRED":        14,
 	}
 )
 
@@ -182,7 +188,8 @@ func (RejectReason) EnumDescriptor() ([]byte, []int) {
 type FeedSubscribeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	GatewayId     string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
-	Symbols       []uint32               `protobuf:"varint,2,rep,packed,name=symbols,proto3" json:"symbols,omitempty"` // empty = every symbol
+	Symbols       []uint32               `protobuf:"varint,2,rep,packed,name=symbols,proto3" json:"symbols,omitempty"`                                                                                    // empty = every symbol
+	FromSeq       map[uint32]uint64      `protobuf:"bytes,3,rep,name=from_seq,json=fromSeq,proto3" json:"from_seq,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"` // symbol → first event seq wanted; absent = snapshot + live. Bridge only. [later]
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -227,6 +234,13 @@ func (x *FeedSubscribeRequest) GetGatewayId() string {
 func (x *FeedSubscribeRequest) GetSymbols() []uint32 {
 	if x != nil {
 		return x.Symbols
+	}
+	return nil
+}
+
+func (x *FeedSubscribeRequest) GetFromSeq() map[uint32]uint64 {
+	if x != nil {
+		return x.FromSeq
 	}
 	return nil
 }
@@ -363,15 +377,17 @@ type MarketEvent struct {
 	Symbol        uint32                 `protobuf:"varint,1,opt,name=symbol,proto3" json:"symbol,omitempty"`
 	Seq           uint64                 `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"` // per symbol, starts at 1, no gaps
 	Kind          EventKind              `protobuf:"varint,3,opt,name=kind,proto3,enum=exchange.v1.EventKind" json:"kind,omitempty"`
-	Ts            int64                  `protobuf:"varint,4,opt,name=ts,proto3" json:"ts,omitempty"`                                          // milliseconds, the sequencer's clock
-	OrderId       uint64                 `protobuf:"varint,5,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`                 // Trade: the aggressor (incoming) order
-	PassiveId     uint64                 `protobuf:"varint,6,opt,name=passive_id,json=passiveId,proto3" json:"passive_id,omitempty"`           // Trade only: the resting order
-	OwnerId       uint64                 `protobuf:"varint,7,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`                 // Trade: the buyer
-	OtherOwner    uint64                 `protobuf:"varint,8,opt,name=other_owner,json=otherOwner,proto3" json:"other_owner,omitempty"`        // Trade: the seller
-	Side          Side                   `protobuf:"varint,9,opt,name=side,proto3,enum=exchange.v1.Side" json:"side,omitempty"`                // Trade: the aggressor's side
-	Price         *int64                 `protobuf:"varint,10,opt,name=price,proto3,oneof" json:"price,omitempty"`                             // absent: market order, Resumed. Stops: the stop price
-	Quantity      int64                  `protobuf:"varint,11,opt,name=quantity,proto3" json:"quantity,omitempty"`                             // fill, rested, remaining or cancelled quantity
-	LimitPrice    *int64                 `protobuf:"varint,12,opt,name=limit_price,json=limitPrice,proto3,oneof" json:"limit_price,omitempty"` // stop events only; absent = stop-market
+	Ts            int64                  `protobuf:"varint,4,opt,name=ts,proto3" json:"ts,omitempty"`                                                                        // milliseconds, the sequencer's clock
+	OrderId       uint64                 `protobuf:"varint,5,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`                                               // Trade: the aggressor (incoming) order
+	PassiveId     uint64                 `protobuf:"varint,6,opt,name=passive_id,json=passiveId,proto3" json:"passive_id,omitempty"`                                         // Trade only: the resting order
+	OwnerId       uint64                 `protobuf:"varint,7,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`                                               // Trade: the buyer
+	OtherOwner    uint64                 `protobuf:"varint,8,opt,name=other_owner,json=otherOwner,proto3" json:"other_owner,omitempty"`                                      // Trade: the seller
+	Side          Side                   `protobuf:"varint,9,opt,name=side,proto3,enum=exchange.v1.Side" json:"side,omitempty"`                                              // Trade: the aggressor's side
+	Price         *int64                 `protobuf:"varint,10,opt,name=price,proto3,oneof" json:"price,omitempty"`                                                           // absent: market order, Resumed. Stops: the stop price
+	Quantity      int64                  `protobuf:"varint,11,opt,name=quantity,proto3" json:"quantity,omitempty"`                                                           // fill, rested, remaining or cancelled quantity
+	LimitPrice    *int64                 `protobuf:"varint,12,opt,name=limit_price,json=limitPrice,proto3,oneof" json:"limit_price,omitempty"`                               // stop events only; absent = stop-market
+	ClientOrderId string                 `protobuf:"bytes,13,opt,name=client_order_id,json=clientOrderId,proto3" json:"client_order_id,omitempty"`                           // ACCEPTED, STOP_ACCEPTED, REJECTED, EXPIRED only. PRIVATE: public consumers must strip it
+	RejectReason  RejectReason           `protobuf:"varint,14,opt,name=reject_reason,json=rejectReason,proto3,enum=exchange.v1.RejectReason" json:"reject_reason,omitempty"` // REJECTED only
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -488,6 +504,20 @@ func (x *MarketEvent) GetLimitPrice() int64 {
 		return *x.LimitPrice
 	}
 	return 0
+}
+
+func (x *MarketEvent) GetClientOrderId() string {
+	if x != nil {
+		return x.ClientOrderId
+	}
+	return ""
+}
+
+func (x *MarketEvent) GetRejectReason() RejectReason {
+	if x != nil {
+		return x.RejectReason
+	}
+	return RejectReason_REJECT_REASON_UNSPECIFIED
 }
 
 // The engine's private answer to one order submission. Sent on SubscribeReplies.
@@ -848,18 +878,22 @@ var File_exchange_v1_engine_feed_proto protoreflect.FileDescriptor
 
 const file_exchange_v1_engine_feed_proto_rawDesc = "" +
 	"\n" +
-	"\x1dexchange/v1/engine_feed.proto\x12\vexchange.v1\x1a\x1aexchange/v1/commands.proto\"O\n" +
+	"\x1dexchange/v1/engine_feed.proto\x12\vexchange.v1\x1a\x1aexchange/v1/commands.proto\"\xd6\x01\n" +
 	"\x14FeedSubscribeRequest\x12\x1d\n" +
 	"\n" +
 	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12\x18\n" +
-	"\asymbols\x18\x02 \x03(\rR\asymbols\"8\n" +
+	"\asymbols\x18\x02 \x03(\rR\asymbols\x12I\n" +
+	"\bfrom_seq\x18\x03 \x03(\v2..exchange.v1.FeedSubscribeRequest.FromSeqEntryR\afromSeq\x1a:\n" +
+	"\fFromSeqEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\rR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x04R\x05value:\x028\x01\"8\n" +
 	"\x17RepliesSubscribeRequest\x12\x1d\n" +
 	"\n" +
 	"gateway_id\x18\x01 \x01(\tR\tgatewayId\"\x8d\x01\n" +
 	"\vFeedMessage\x127\n" +
 	"\bsnapshot\x18\x01 \x01(\v2\x19.exchange.v1.BookSnapshotH\x00R\bsnapshot\x120\n" +
 	"\x05event\x18\x02 \x01(\v2\x18.exchange.v1.MarketEventH\x00R\x05eventB\x06\n" +
-	"\x04bodyJ\x04\b\x03\x10\x04R\x05reply\"\x87\x03\n" +
+	"\x04bodyJ\x04\b\x03\x10\x04R\x05reply\"\xef\x03\n" +
 	"\vMarketEvent\x12\x16\n" +
 	"\x06symbol\x18\x01 \x01(\rR\x06symbol\x12\x10\n" +
 	"\x03seq\x18\x02 \x01(\x04R\x03seq\x12*\n" +
@@ -876,7 +910,9 @@ const file_exchange_v1_engine_feed_proto_rawDesc = "" +
 	" \x01(\x03H\x00R\x05price\x88\x01\x01\x12\x1a\n" +
 	"\bquantity\x18\v \x01(\x03R\bquantity\x12$\n" +
 	"\vlimit_price\x18\f \x01(\x03H\x01R\n" +
-	"limitPrice\x88\x01\x01B\b\n" +
+	"limitPrice\x88\x01\x01\x12&\n" +
+	"\x0fclient_order_id\x18\r \x01(\tR\rclientOrderId\x12>\n" +
+	"\rreject_reason\x18\x0e \x01(\x0e2\x19.exchange.v1.RejectReasonR\frejectReasonB\b\n" +
 	"\x06_priceB\x0e\n" +
 	"\f_limit_price\"\xca\x02\n" +
 	"\x05Reply\x12\x1d\n" +
@@ -915,7 +951,7 @@ const file_exchange_v1_engine_feed_proto_rawDesc = "" +
 	"\x05stops\x18\x05 \x03(\v2\x18.exchange.v1.DormantStopR\x05stops\x12-\n" +
 	"\x10last_trade_price\x18\x06 \x01(\x03H\x00R\x0elastTradePrice\x88\x01\x01\x12\x16\n" +
 	"\x06halted\x18\a \x01(\bR\x06haltedB\x13\n" +
-	"\x11_last_trade_price*\xe2\x02\n" +
+	"\x11_last_trade_price*\x93\x03\n" +
 	"\tEventKind\x12\x1a\n" +
 	"\x16EVENT_KIND_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13EVENT_KIND_ACCEPTED\x10\x01\x12\x15\n" +
@@ -930,7 +966,9 @@ const file_exchange_v1_engine_feed_proto_rawDesc = "" +
 	"\x18EVENT_KIND_STOP_MODIFIED\x10\n" +
 	"\x12\x15\n" +
 	"\x11EVENT_KIND_HALTED\x10\v\x12\x16\n" +
-	"\x12EVENT_KIND_RESUMED\x10\f*\xb2\x03\n" +
+	"\x12EVENT_KIND_RESUMED\x10\f\x12\x17\n" +
+	"\x13EVENT_KIND_REJECTED\x10\r\x12\x16\n" +
+	"\x12EVENT_KIND_EXPIRED\x10\x0e*\xb2\x03\n" +
 	"\fRejectReason\x12\x1d\n" +
 	"\x19REJECT_REASON_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12REJECT_REASON_NONE\x10\x01\x12\x1f\n" +
@@ -964,7 +1002,7 @@ func file_exchange_v1_engine_feed_proto_rawDescGZIP() []byte {
 }
 
 var file_exchange_v1_engine_feed_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_exchange_v1_engine_feed_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_exchange_v1_engine_feed_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_exchange_v1_engine_feed_proto_goTypes = []any{
 	(EventKind)(0),                  // 0: exchange.v1.EventKind
 	(RejectReason)(0),               // 1: exchange.v1.RejectReason
@@ -976,27 +1014,30 @@ var file_exchange_v1_engine_feed_proto_goTypes = []any{
 	(*RestingOrder)(nil),            // 7: exchange.v1.RestingOrder
 	(*DormantStop)(nil),             // 8: exchange.v1.DormantStop
 	(*BookSnapshot)(nil),            // 9: exchange.v1.BookSnapshot
-	(Side)(0),                       // 10: exchange.v1.Side
+	nil,                             // 10: exchange.v1.FeedSubscribeRequest.FromSeqEntry
+	(Side)(0),                       // 11: exchange.v1.Side
 }
 var file_exchange_v1_engine_feed_proto_depIdxs = []int32{
-	9,  // 0: exchange.v1.FeedMessage.snapshot:type_name -> exchange.v1.BookSnapshot
-	5,  // 1: exchange.v1.FeedMessage.event:type_name -> exchange.v1.MarketEvent
-	0,  // 2: exchange.v1.MarketEvent.kind:type_name -> exchange.v1.EventKind
-	10, // 3: exchange.v1.MarketEvent.side:type_name -> exchange.v1.Side
-	1,  // 4: exchange.v1.Reply.reject_reason:type_name -> exchange.v1.RejectReason
-	10, // 5: exchange.v1.DormantStop.side:type_name -> exchange.v1.Side
-	7,  // 6: exchange.v1.BookSnapshot.bids:type_name -> exchange.v1.RestingOrder
-	7,  // 7: exchange.v1.BookSnapshot.asks:type_name -> exchange.v1.RestingOrder
-	8,  // 8: exchange.v1.BookSnapshot.stops:type_name -> exchange.v1.DormantStop
-	2,  // 9: exchange.v1.EngineFeed.Subscribe:input_type -> exchange.v1.FeedSubscribeRequest
-	3,  // 10: exchange.v1.EngineFeed.SubscribeReplies:input_type -> exchange.v1.RepliesSubscribeRequest
-	4,  // 11: exchange.v1.EngineFeed.Subscribe:output_type -> exchange.v1.FeedMessage
-	6,  // 12: exchange.v1.EngineFeed.SubscribeReplies:output_type -> exchange.v1.Reply
-	11, // [11:13] is the sub-list for method output_type
-	9,  // [9:11] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	10, // 0: exchange.v1.FeedSubscribeRequest.from_seq:type_name -> exchange.v1.FeedSubscribeRequest.FromSeqEntry
+	9,  // 1: exchange.v1.FeedMessage.snapshot:type_name -> exchange.v1.BookSnapshot
+	5,  // 2: exchange.v1.FeedMessage.event:type_name -> exchange.v1.MarketEvent
+	0,  // 3: exchange.v1.MarketEvent.kind:type_name -> exchange.v1.EventKind
+	11, // 4: exchange.v1.MarketEvent.side:type_name -> exchange.v1.Side
+	1,  // 5: exchange.v1.MarketEvent.reject_reason:type_name -> exchange.v1.RejectReason
+	1,  // 6: exchange.v1.Reply.reject_reason:type_name -> exchange.v1.RejectReason
+	11, // 7: exchange.v1.DormantStop.side:type_name -> exchange.v1.Side
+	7,  // 8: exchange.v1.BookSnapshot.bids:type_name -> exchange.v1.RestingOrder
+	7,  // 9: exchange.v1.BookSnapshot.asks:type_name -> exchange.v1.RestingOrder
+	8,  // 10: exchange.v1.BookSnapshot.stops:type_name -> exchange.v1.DormantStop
+	2,  // 11: exchange.v1.EngineFeed.Subscribe:input_type -> exchange.v1.FeedSubscribeRequest
+	3,  // 12: exchange.v1.EngineFeed.SubscribeReplies:input_type -> exchange.v1.RepliesSubscribeRequest
+	4,  // 13: exchange.v1.EngineFeed.Subscribe:output_type -> exchange.v1.FeedMessage
+	6,  // 14: exchange.v1.EngineFeed.SubscribeReplies:output_type -> exchange.v1.Reply
+	13, // [13:15] is the sub-list for method output_type
+	11, // [11:13] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_exchange_v1_engine_feed_proto_init() }
@@ -1019,7 +1060,7 @@ func file_exchange_v1_engine_feed_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_exchange_v1_engine_feed_proto_rawDesc), len(file_exchange_v1_engine_feed_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -119,6 +119,58 @@ func (OrderType) EnumDescriptor() ([]byte, []int) {
 	return file_exchange_v1_commands_proto_rawDescGZIP(), []int{1}
 }
 
+type TimeInForce int32
+
+const (
+	TimeInForce_TIME_IN_FORCE_UNSPECIFIED TimeInForce = 0
+	TimeInForce_TIME_IN_FORCE_GTC         TimeInForce = 1
+	TimeInForce_TIME_IN_FORCE_IOC         TimeInForce = 2
+	TimeInForce_TIME_IN_FORCE_DAY         TimeInForce = 3
+)
+
+// Enum value maps for TimeInForce.
+var (
+	TimeInForce_name = map[int32]string{
+		0: "TIME_IN_FORCE_UNSPECIFIED",
+		1: "TIME_IN_FORCE_GTC",
+		2: "TIME_IN_FORCE_IOC",
+		3: "TIME_IN_FORCE_DAY",
+	}
+	TimeInForce_value = map[string]int32{
+		"TIME_IN_FORCE_UNSPECIFIED": 0,
+		"TIME_IN_FORCE_GTC":         1,
+		"TIME_IN_FORCE_IOC":         2,
+		"TIME_IN_FORCE_DAY":         3,
+	}
+)
+
+func (x TimeInForce) Enum() *TimeInForce {
+	p := new(TimeInForce)
+	*p = x
+	return p
+}
+
+func (x TimeInForce) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TimeInForce) Descriptor() protoreflect.EnumDescriptor {
+	return file_exchange_v1_commands_proto_enumTypes[2].Descriptor()
+}
+
+func (TimeInForce) Type() protoreflect.EnumType {
+	return &file_exchange_v1_commands_proto_enumTypes[2]
+}
+
+func (x TimeInForce) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TimeInForce.Descriptor instead.
+func (TimeInForce) EnumDescriptor() ([]byte, []int) {
+	return file_exchange_v1_commands_proto_rawDescGZIP(), []int{2}
+}
+
 type Order struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"` // assigned by the engine as the SequencedCommand.seq; senders leave it 0, any value sent is ignored
@@ -127,6 +179,7 @@ type Order struct {
 	Type          OrderType              `protobuf:"varint,4,opt,name=type,proto3,enum=exchange.v1.OrderType" json:"type,omitempty"`
 	Price         *int64                 `protobuf:"varint,5,opt,name=price,proto3,oneof" json:"price,omitempty"` // limit: required. market: must be absent.
 	Quantity      int64                  `protobuf:"varint,6,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	TimeInForce   TimeInForce            `protobuf:"varint,7,opt,name=time_in_force,json=timeInForce,proto3,enum=exchange.v1.TimeInForce" json:"time_in_force,omitempty"` // UNSPECIFIED = GTC; IOC/DAY [later]
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -201,6 +254,13 @@ func (x *Order) GetQuantity() int64 {
 		return x.Quantity
 	}
 	return 0
+}
+
+func (x *Order) GetTimeInForce() TimeInForce {
+	if x != nil {
+		return x.TimeInForce
+	}
+	return TimeInForce_TIME_IN_FORCE_UNSPECIFIED
 }
 
 type StopOrder struct {
@@ -773,14 +833,15 @@ var File_exchange_v1_commands_proto protoreflect.FileDescriptor
 
 const file_exchange_v1_commands_proto_rawDesc = "" +
 	"\n" +
-	"\x1aexchange/v1/commands.proto\x12\vexchange.v1\"\xc6\x01\n" +
+	"\x1aexchange/v1/commands.proto\x12\vexchange.v1\"\x84\x02\n" +
 	"\x05Order\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x19\n" +
 	"\bowner_id\x18\x02 \x01(\x04R\aownerId\x12%\n" +
 	"\x04side\x18\x03 \x01(\x0e2\x11.exchange.v1.SideR\x04side\x12*\n" +
 	"\x04type\x18\x04 \x01(\x0e2\x16.exchange.v1.OrderTypeR\x04type\x12\x19\n" +
 	"\x05price\x18\x05 \x01(\x03H\x00R\x05price\x88\x01\x01\x12\x1a\n" +
-	"\bquantity\x18\x06 \x01(\x03R\bquantityB\b\n" +
+	"\bquantity\x18\x06 \x01(\x03R\bquantity\x12<\n" +
+	"\rtime_in_force\x18\a \x01(\x0e2\x18.exchange.v1.TimeInForceR\vtimeInForceB\b\n" +
 	"\x06_price\"\xce\x01\n" +
 	"\tStopOrder\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x19\n" +
@@ -834,7 +895,12 @@ const file_exchange_v1_commands_proto_rawDesc = "" +
 	"\tOrderType\x12\x1a\n" +
 	"\x16ORDER_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10ORDER_TYPE_LIMIT\x10\x01\x12\x15\n" +
-	"\x11ORDER_TYPE_MARKET\x10\x02b\x06proto3"
+	"\x11ORDER_TYPE_MARKET\x10\x02*q\n" +
+	"\vTimeInForce\x12\x1d\n" +
+	"\x19TIME_IN_FORCE_UNSPECIFIED\x10\x00\x12\x15\n" +
+	"\x11TIME_IN_FORCE_GTC\x10\x01\x12\x15\n" +
+	"\x11TIME_IN_FORCE_IOC\x10\x02\x12\x15\n" +
+	"\x11TIME_IN_FORCE_DAY\x10\x03b\x06proto3"
 
 var (
 	file_exchange_v1_commands_proto_rawDescOnce sync.Once
@@ -848,38 +914,40 @@ func file_exchange_v1_commands_proto_rawDescGZIP() []byte {
 	return file_exchange_v1_commands_proto_rawDescData
 }
 
-var file_exchange_v1_commands_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_exchange_v1_commands_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_exchange_v1_commands_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_exchange_v1_commands_proto_goTypes = []any{
 	(Side)(0),           // 0: exchange.v1.Side
 	(OrderType)(0),      // 1: exchange.v1.OrderType
-	(*Order)(nil),       // 2: exchange.v1.Order
-	(*StopOrder)(nil),   // 3: exchange.v1.StopOrder
-	(*NewOrder)(nil),    // 4: exchange.v1.NewOrder
-	(*CancelOrder)(nil), // 5: exchange.v1.CancelOrder
-	(*ModifyOrder)(nil), // 6: exchange.v1.ModifyOrder
-	(*PlaceStop)(nil),   // 7: exchange.v1.PlaceStop
-	(*CancelStop)(nil),  // 8: exchange.v1.CancelStop
-	(*ModifyStop)(nil),  // 9: exchange.v1.ModifyStop
-	(*CommandBody)(nil), // 10: exchange.v1.CommandBody
+	(TimeInForce)(0),    // 2: exchange.v1.TimeInForce
+	(*Order)(nil),       // 3: exchange.v1.Order
+	(*StopOrder)(nil),   // 4: exchange.v1.StopOrder
+	(*NewOrder)(nil),    // 5: exchange.v1.NewOrder
+	(*CancelOrder)(nil), // 6: exchange.v1.CancelOrder
+	(*ModifyOrder)(nil), // 7: exchange.v1.ModifyOrder
+	(*PlaceStop)(nil),   // 8: exchange.v1.PlaceStop
+	(*CancelStop)(nil),  // 9: exchange.v1.CancelStop
+	(*ModifyStop)(nil),  // 10: exchange.v1.ModifyStop
+	(*CommandBody)(nil), // 11: exchange.v1.CommandBody
 }
 var file_exchange_v1_commands_proto_depIdxs = []int32{
 	0,  // 0: exchange.v1.Order.side:type_name -> exchange.v1.Side
 	1,  // 1: exchange.v1.Order.type:type_name -> exchange.v1.OrderType
-	0,  // 2: exchange.v1.StopOrder.side:type_name -> exchange.v1.Side
-	2,  // 3: exchange.v1.NewOrder.order:type_name -> exchange.v1.Order
-	3,  // 4: exchange.v1.PlaceStop.stop:type_name -> exchange.v1.StopOrder
-	4,  // 5: exchange.v1.CommandBody.new_order:type_name -> exchange.v1.NewOrder
-	5,  // 6: exchange.v1.CommandBody.cancel_order:type_name -> exchange.v1.CancelOrder
-	6,  // 7: exchange.v1.CommandBody.modify_order:type_name -> exchange.v1.ModifyOrder
-	7,  // 8: exchange.v1.CommandBody.place_stop:type_name -> exchange.v1.PlaceStop
-	8,  // 9: exchange.v1.CommandBody.cancel_stop:type_name -> exchange.v1.CancelStop
-	9,  // 10: exchange.v1.CommandBody.modify_stop:type_name -> exchange.v1.ModifyStop
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	2,  // 2: exchange.v1.Order.time_in_force:type_name -> exchange.v1.TimeInForce
+	0,  // 3: exchange.v1.StopOrder.side:type_name -> exchange.v1.Side
+	3,  // 4: exchange.v1.NewOrder.order:type_name -> exchange.v1.Order
+	4,  // 5: exchange.v1.PlaceStop.stop:type_name -> exchange.v1.StopOrder
+	5,  // 6: exchange.v1.CommandBody.new_order:type_name -> exchange.v1.NewOrder
+	6,  // 7: exchange.v1.CommandBody.cancel_order:type_name -> exchange.v1.CancelOrder
+	7,  // 8: exchange.v1.CommandBody.modify_order:type_name -> exchange.v1.ModifyOrder
+	8,  // 9: exchange.v1.CommandBody.place_stop:type_name -> exchange.v1.PlaceStop
+	9,  // 10: exchange.v1.CommandBody.cancel_stop:type_name -> exchange.v1.CancelStop
+	10, // 11: exchange.v1.CommandBody.modify_stop:type_name -> exchange.v1.ModifyStop
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_exchange_v1_commands_proto_init() }
@@ -903,7 +971,7 @@ func file_exchange_v1_commands_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_exchange_v1_commands_proto_rawDesc), len(file_exchange_v1_commands_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,

@@ -29,6 +29,11 @@ const (
 	CashRejectReason_CASH_REJECT_REASON_UNSPECIFIED           CashRejectReason = 0
 	CashRejectReason_CASH_REJECT_REASON_INSUFFICIENT_CASH     CashRejectReason = 1
 	CashRejectReason_CASH_REJECT_REASON_INSUFFICIENT_HOLDINGS CashRejectReason = 2
+	CashRejectReason_CASH_REJECT_REASON_UNKNOWN_ACCOUNT       CashRejectReason = 3
+	CashRejectReason_CASH_REJECT_REASON_EXCHANGE_BUSY         CashRejectReason = 4 // sequencer BUSY — not placed, safe to retry
+	CashRejectReason_CASH_REJECT_REASON_UNKNOWN_SYMBOL        CashRejectReason = 5
+	CashRejectReason_CASH_REJECT_REASON_EXCHANGE_UNAVAILABLE  CashRejectReason = 6 // sequencer NOT_RUNNING — not placed, safe to retry
+	CashRejectReason_CASH_REJECT_REASON_NOT_SUPPORTED         CashRejectReason = 7 // type/tif not built yet
 )
 
 // Enum value maps for CashRejectReason.
@@ -37,11 +42,21 @@ var (
 		0: "CASH_REJECT_REASON_UNSPECIFIED",
 		1: "CASH_REJECT_REASON_INSUFFICIENT_CASH",
 		2: "CASH_REJECT_REASON_INSUFFICIENT_HOLDINGS",
+		3: "CASH_REJECT_REASON_UNKNOWN_ACCOUNT",
+		4: "CASH_REJECT_REASON_EXCHANGE_BUSY",
+		5: "CASH_REJECT_REASON_UNKNOWN_SYMBOL",
+		6: "CASH_REJECT_REASON_EXCHANGE_UNAVAILABLE",
+		7: "CASH_REJECT_REASON_NOT_SUPPORTED",
 	}
 	CashRejectReason_value = map[string]int32{
 		"CASH_REJECT_REASON_UNSPECIFIED":           0,
 		"CASH_REJECT_REASON_INSUFFICIENT_CASH":     1,
 		"CASH_REJECT_REASON_INSUFFICIENT_HOLDINGS": 2,
+		"CASH_REJECT_REASON_UNKNOWN_ACCOUNT":       3,
+		"CASH_REJECT_REASON_EXCHANGE_BUSY":         4,
+		"CASH_REJECT_REASON_UNKNOWN_SYMBOL":        5,
+		"CASH_REJECT_REASON_EXCHANGE_UNAVAILABLE":  6,
+		"CASH_REJECT_REASON_NOT_SUPPORTED":         7,
 	}
 )
 
@@ -72,17 +87,322 @@ func (CashRejectReason) EnumDescriptor() ([]byte, []int) {
 	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{0}
 }
 
+type CancelRejectReason int32
+
+const (
+	CancelRejectReason_CANCEL_REJECT_REASON_UNSPECIFIED          CancelRejectReason = 0
+	CancelRejectReason_CANCEL_REJECT_REASON_ORDER_NOT_FOUND      CancelRejectReason = 1
+	CancelRejectReason_CANCEL_REJECT_REASON_ORDER_CLOSED         CancelRejectReason = 2
+	CancelRejectReason_CANCEL_REJECT_REASON_EXCHANGE_BUSY        CancelRejectReason = 3
+	CancelRejectReason_CANCEL_REJECT_REASON_EXCHANGE_UNAVAILABLE CancelRejectReason = 4
+)
+
+// Enum value maps for CancelRejectReason.
+var (
+	CancelRejectReason_name = map[int32]string{
+		0: "CANCEL_REJECT_REASON_UNSPECIFIED",
+		1: "CANCEL_REJECT_REASON_ORDER_NOT_FOUND",
+		2: "CANCEL_REJECT_REASON_ORDER_CLOSED",
+		3: "CANCEL_REJECT_REASON_EXCHANGE_BUSY",
+		4: "CANCEL_REJECT_REASON_EXCHANGE_UNAVAILABLE",
+	}
+	CancelRejectReason_value = map[string]int32{
+		"CANCEL_REJECT_REASON_UNSPECIFIED":          0,
+		"CANCEL_REJECT_REASON_ORDER_NOT_FOUND":      1,
+		"CANCEL_REJECT_REASON_ORDER_CLOSED":         2,
+		"CANCEL_REJECT_REASON_EXCHANGE_BUSY":        3,
+		"CANCEL_REJECT_REASON_EXCHANGE_UNAVAILABLE": 4,
+	}
+)
+
+func (x CancelRejectReason) Enum() *CancelRejectReason {
+	p := new(CancelRejectReason)
+	*p = x
+	return p
+}
+
+func (x CancelRejectReason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CancelRejectReason) Descriptor() protoreflect.EnumDescriptor {
+	return file_exchange_v1_cash_owner_proto_enumTypes[1].Descriptor()
+}
+
+func (CancelRejectReason) Type() protoreflect.EnumType {
+	return &file_exchange_v1_cash_owner_proto_enumTypes[1]
+}
+
+func (x CancelRejectReason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CancelRejectReason.Descriptor instead.
+func (CancelRejectReason) EnumDescriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{1}
+}
+
+type OrderStatus int32
+
+const (
+	OrderStatus_ORDER_STATUS_UNSPECIFIED      OrderStatus = 0
+	OrderStatus_ORDER_STATUS_PENDING_NEW      OrderStatus = 1
+	OrderStatus_ORDER_STATUS_NEW              OrderStatus = 2
+	OrderStatus_ORDER_STATUS_PARTIALLY_FILLED OrderStatus = 3
+	OrderStatus_ORDER_STATUS_FILLED           OrderStatus = 4
+	OrderStatus_ORDER_STATUS_CANCELED         OrderStatus = 5
+	OrderStatus_ORDER_STATUS_REJECTED         OrderStatus = 6
+	OrderStatus_ORDER_STATUS_EXPIRED          OrderStatus = 7
+	OrderStatus_ORDER_STATUS_PENDING_CANCEL   OrderStatus = 8
+	OrderStatus_ORDER_STATUS_PENDING_REPLACE  OrderStatus = 9
+)
+
+// Enum value maps for OrderStatus.
+var (
+	OrderStatus_name = map[int32]string{
+		0: "ORDER_STATUS_UNSPECIFIED",
+		1: "ORDER_STATUS_PENDING_NEW",
+		2: "ORDER_STATUS_NEW",
+		3: "ORDER_STATUS_PARTIALLY_FILLED",
+		4: "ORDER_STATUS_FILLED",
+		5: "ORDER_STATUS_CANCELED",
+		6: "ORDER_STATUS_REJECTED",
+		7: "ORDER_STATUS_EXPIRED",
+		8: "ORDER_STATUS_PENDING_CANCEL",
+		9: "ORDER_STATUS_PENDING_REPLACE",
+	}
+	OrderStatus_value = map[string]int32{
+		"ORDER_STATUS_UNSPECIFIED":      0,
+		"ORDER_STATUS_PENDING_NEW":      1,
+		"ORDER_STATUS_NEW":              2,
+		"ORDER_STATUS_PARTIALLY_FILLED": 3,
+		"ORDER_STATUS_FILLED":           4,
+		"ORDER_STATUS_CANCELED":         5,
+		"ORDER_STATUS_REJECTED":         6,
+		"ORDER_STATUS_EXPIRED":          7,
+		"ORDER_STATUS_PENDING_CANCEL":   8,
+		"ORDER_STATUS_PENDING_REPLACE":  9,
+	}
+)
+
+func (x OrderStatus) Enum() *OrderStatus {
+	p := new(OrderStatus)
+	*p = x
+	return p
+}
+
+func (x OrderStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (OrderStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_exchange_v1_cash_owner_proto_enumTypes[2].Descriptor()
+}
+
+func (OrderStatus) Type() protoreflect.EnumType {
+	return &file_exchange_v1_cash_owner_proto_enumTypes[2]
+}
+
+func (x OrderStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use OrderStatus.Descriptor instead.
+func (OrderStatus) EnumDescriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{2}
+}
+
+type TransferStatus int32
+
+const (
+	TransferStatus_TRANSFER_STATUS_UNSPECIFIED       TransferStatus = 0
+	TransferStatus_TRANSFER_STATUS_APPLIED           TransferStatus = 1
+	TransferStatus_TRANSFER_STATUS_DUPLICATE         TransferStatus = 2
+	TransferStatus_TRANSFER_STATUS_INSUFFICIENT_CASH TransferStatus = 3
+	TransferStatus_TRANSFER_STATUS_UNKNOWN_ACCOUNT   TransferStatus = 4
+)
+
+// Enum value maps for TransferStatus.
+var (
+	TransferStatus_name = map[int32]string{
+		0: "TRANSFER_STATUS_UNSPECIFIED",
+		1: "TRANSFER_STATUS_APPLIED",
+		2: "TRANSFER_STATUS_DUPLICATE",
+		3: "TRANSFER_STATUS_INSUFFICIENT_CASH",
+		4: "TRANSFER_STATUS_UNKNOWN_ACCOUNT",
+	}
+	TransferStatus_value = map[string]int32{
+		"TRANSFER_STATUS_UNSPECIFIED":       0,
+		"TRANSFER_STATUS_APPLIED":           1,
+		"TRANSFER_STATUS_DUPLICATE":         2,
+		"TRANSFER_STATUS_INSUFFICIENT_CASH": 3,
+		"TRANSFER_STATUS_UNKNOWN_ACCOUNT":   4,
+	}
+)
+
+func (x TransferStatus) Enum() *TransferStatus {
+	p := new(TransferStatus)
+	*p = x
+	return p
+}
+
+func (x TransferStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TransferStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_exchange_v1_cash_owner_proto_enumTypes[3].Descriptor()
+}
+
+func (TransferStatus) Type() protoreflect.EnumType {
+	return &file_exchange_v1_cash_owner_proto_enumTypes[3]
+}
+
+func (x TransferStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TransferStatus.Descriptor instead.
+func (TransferStatus) EnumDescriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{3}
+}
+
+type GetOrdersRequest_Filter int32
+
+const (
+	GetOrdersRequest_FILTER_UNSPECIFIED GetOrdersRequest_Filter = 0
+	GetOrdersRequest_FILTER_OPEN        GetOrdersRequest_Filter = 1
+	GetOrdersRequest_FILTER_CLOSED      GetOrdersRequest_Filter = 2
+	GetOrdersRequest_FILTER_ALL         GetOrdersRequest_Filter = 3
+)
+
+// Enum value maps for GetOrdersRequest_Filter.
+var (
+	GetOrdersRequest_Filter_name = map[int32]string{
+		0: "FILTER_UNSPECIFIED",
+		1: "FILTER_OPEN",
+		2: "FILTER_CLOSED",
+		3: "FILTER_ALL",
+	}
+	GetOrdersRequest_Filter_value = map[string]int32{
+		"FILTER_UNSPECIFIED": 0,
+		"FILTER_OPEN":        1,
+		"FILTER_CLOSED":      2,
+		"FILTER_ALL":         3,
+	}
+)
+
+func (x GetOrdersRequest_Filter) Enum() *GetOrdersRequest_Filter {
+	p := new(GetOrdersRequest_Filter)
+	*p = x
+	return p
+}
+
+func (x GetOrdersRequest_Filter) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (GetOrdersRequest_Filter) Descriptor() protoreflect.EnumDescriptor {
+	return file_exchange_v1_cash_owner_proto_enumTypes[4].Descriptor()
+}
+
+func (GetOrdersRequest_Filter) Type() protoreflect.EnumType {
+	return &file_exchange_v1_cash_owner_proto_enumTypes[4]
+}
+
+func (x GetOrdersRequest_Filter) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use GetOrdersRequest_Filter.Descriptor instead.
+func (GetOrdersRequest_Filter) EnumDescriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{11, 0}
+}
+
+type OrderEvent_Kind int32
+
+const (
+	OrderEvent_KIND_UNSPECIFIED      OrderEvent_Kind = 0
+	OrderEvent_KIND_NEW              OrderEvent_Kind = 1
+	OrderEvent_KIND_PARTIAL_FILL     OrderEvent_Kind = 2
+	OrderEvent_KIND_FILL             OrderEvent_Kind = 3
+	OrderEvent_KIND_CANCELED         OrderEvent_Kind = 4
+	OrderEvent_KIND_CANCEL_REJECTED  OrderEvent_Kind = 5
+	OrderEvent_KIND_REJECTED         OrderEvent_Kind = 6
+	OrderEvent_KIND_EXPIRED          OrderEvent_Kind = 7
+	OrderEvent_KIND_REPLACED         OrderEvent_Kind = 8
+	OrderEvent_KIND_REPLACE_REJECTED OrderEvent_Kind = 9
+)
+
+// Enum value maps for OrderEvent_Kind.
+var (
+	OrderEvent_Kind_name = map[int32]string{
+		0: "KIND_UNSPECIFIED",
+		1: "KIND_NEW",
+		2: "KIND_PARTIAL_FILL",
+		3: "KIND_FILL",
+		4: "KIND_CANCELED",
+		5: "KIND_CANCEL_REJECTED",
+		6: "KIND_REJECTED",
+		7: "KIND_EXPIRED",
+		8: "KIND_REPLACED",
+		9: "KIND_REPLACE_REJECTED",
+	}
+	OrderEvent_Kind_value = map[string]int32{
+		"KIND_UNSPECIFIED":      0,
+		"KIND_NEW":              1,
+		"KIND_PARTIAL_FILL":     2,
+		"KIND_FILL":             3,
+		"KIND_CANCELED":         4,
+		"KIND_CANCEL_REJECTED":  5,
+		"KIND_REJECTED":         6,
+		"KIND_EXPIRED":          7,
+		"KIND_REPLACED":         8,
+		"KIND_REPLACE_REJECTED": 9,
+	}
+)
+
+func (x OrderEvent_Kind) Enum() *OrderEvent_Kind {
+	p := new(OrderEvent_Kind)
+	*p = x
+	return p
+}
+
+func (x OrderEvent_Kind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (OrderEvent_Kind) Descriptor() protoreflect.EnumDescriptor {
+	return file_exchange_v1_cash_owner_proto_enumTypes[5].Descriptor()
+}
+
+func (OrderEvent_Kind) Type() protoreflect.EnumType {
+	return &file_exchange_v1_cash_owner_proto_enumTypes[5]
+}
+
+func (x OrderEvent_Kind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use OrderEvent_Kind.Descriptor instead.
+func (OrderEvent_Kind) EnumDescriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{15, 0}
+}
+
 type PlaceOrderRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AccountId     uint64                 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`              // from the verified token
-	ClientOrderId string                 `protobuf:"bytes,2,opt,name=client_order_id,json=clientOrderId,proto3" json:"client_order_id,omitempty"` // chosen by the client, 1-48 chars [A-Za-z0-9_-], case-sensitive; unique only within one account
-	Symbol        uint32                 `protobuf:"varint,3,opt,name=symbol,proto3" json:"symbol,omitempty"`                                     // symbol_id from refdata
-	Side          Side                   `protobuf:"varint,4,opt,name=side,proto3,enum=exchange.v1.Side" json:"side,omitempty"`
-	PriceMinor    int64                  `protobuf:"varint,5,opt,name=price_minor,json=priceMinor,proto3" json:"price_minor,omitempty"` // limit price, integer minor, > 0
-	Quantity      int64                  `protobuf:"varint,6,opt,name=quantity,proto3" json:"quantity,omitempty"`                       // > 0
-	GatewayId     string                 `protobuf:"bytes,7,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`     // which gateway to send the engine's Reply to; stamped by the gateway itself
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AccountId      uint64                 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`              // from the verified token
+	ClientOrderId  string                 `protobuf:"bytes,2,opt,name=client_order_id,json=clientOrderId,proto3" json:"client_order_id,omitempty"` // chosen by the client, 1-48 chars [A-Za-z0-9_-], case-sensitive; unique only within one account
+	Symbol         uint32                 `protobuf:"varint,3,opt,name=symbol,proto3" json:"symbol,omitempty"`                                     // symbol_id from refdata
+	Side           Side                   `protobuf:"varint,4,opt,name=side,proto3,enum=exchange.v1.Side" json:"side,omitempty"`
+	PriceMinor     int64                  `protobuf:"varint,5,opt,name=price_minor,json=priceMinor,proto3" json:"price_minor,omitempty"`                                   // limit price, integer minor, > 0 (market orders: the protection cap)
+	Quantity       int64                  `protobuf:"varint,6,opt,name=quantity,proto3" json:"quantity,omitempty"`                                                         // > 0
+	GatewayId      string                 `protobuf:"bytes,7,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`                                       // which gateway to send the engine's Reply to; stamped by the gateway itself
+	TimeInForce    TimeInForce            `protobuf:"varint,8,opt,name=time_in_force,json=timeInForce,proto3,enum=exchange.v1.TimeInForce" json:"time_in_force,omitempty"` // UNSPECIFIED = GTC
+	Type           OrderType              `protobuf:"varint,9,opt,name=type,proto3,enum=exchange.v1.OrderType" json:"type,omitempty"`                                      // UNSPECIFIED = LIMIT
+	StopPriceMinor *int64                 `protobuf:"varint,10,opt,name=stop_price_minor,json=stopPriceMinor,proto3,oneof" json:"stop_price_minor,omitempty"`              // [later]
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *PlaceOrderRequest) Reset() {
@@ -164,11 +484,34 @@ func (x *PlaceOrderRequest) GetGatewayId() string {
 	return ""
 }
 
+func (x *PlaceOrderRequest) GetTimeInForce() TimeInForce {
+	if x != nil {
+		return x.TimeInForce
+	}
+	return TimeInForce_TIME_IN_FORCE_UNSPECIFIED
+}
+
+func (x *PlaceOrderRequest) GetType() OrderType {
+	if x != nil {
+		return x.Type
+	}
+	return OrderType_ORDER_TYPE_UNSPECIFIED
+}
+
+func (x *PlaceOrderRequest) GetStopPriceMinor() int64 {
+	if x != nil && x.StopPriceMinor != nil {
+		return *x.StopPriceMinor
+	}
+	return 0
+}
+
 type PlaceOrderAck struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	Accepted       bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	Accepted       bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`                                   // true = sequencer acked; engine Reply will follow on SubscribeReplies
 	Reason         CashRejectReason       `protobuf:"varint,2,opt,name=reason,proto3,enum=exchange.v1.CashRejectReason" json:"reason,omitempty"`     // set only when accepted == false
 	ShortfallMinor int64                  `protobuf:"varint,3,opt,name=shortfall_minor,json=shortfallMinor,proto3" json:"shortfall_minor,omitempty"` // INSUFFICIENT_CASH only: how much more cash was needed
+	Duplicate      bool                   `protobuf:"varint,4,opt,name=duplicate,proto3" json:"duplicate,omitempty"`                                 // this (account, client_order_id) was seen before
+	Order          *OrderState            `protobuf:"bytes,5,opt,name=order,proto3" json:"order,omitempty"`                                          // set when duplicate: the order as it stands now
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -224,11 +567,1291 @@ func (x *PlaceOrderAck) GetShortfallMinor() int64 {
 	return 0
 }
 
+func (x *PlaceOrderAck) GetDuplicate() bool {
+	if x != nil {
+		return x.Duplicate
+	}
+	return false
+}
+
+func (x *PlaceOrderAck) GetOrder() *OrderState {
+	if x != nil {
+		return x.Order
+	}
+	return nil
+}
+
+type CancelOrderRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     uint64                 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Symbol        uint32                 `protobuf:"varint,2,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	OrderId       uint64                 `protobuf:"varint,3,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	GatewayId     string                 `protobuf:"bytes,4,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelOrderRequest) Reset() {
+	*x = CancelOrderRequest{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelOrderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelOrderRequest) ProtoMessage() {}
+
+func (x *CancelOrderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelOrderRequest.ProtoReflect.Descriptor instead.
+func (*CancelOrderRequest) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CancelOrderRequest) GetAccountId() uint64 {
+	if x != nil {
+		return x.AccountId
+	}
+	return 0
+}
+
+func (x *CancelOrderRequest) GetSymbol() uint32 {
+	if x != nil {
+		return x.Symbol
+	}
+	return 0
+}
+
+func (x *CancelOrderRequest) GetOrderId() uint64 {
+	if x != nil {
+		return x.OrderId
+	}
+	return 0
+}
+
+func (x *CancelOrderRequest) GetGatewayId() string {
+	if x != nil {
+		return x.GatewayId
+	}
+	return ""
+}
+
+type CancelOrderAck struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Accepted      bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	Reason        CancelRejectReason     `protobuf:"varint,2,opt,name=reason,proto3,enum=exchange.v1.CancelRejectReason" json:"reason,omitempty"`
+	Order         *OrderState            `protobuf:"bytes,3,opt,name=order,proto3" json:"order,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelOrderAck) Reset() {
+	*x = CancelOrderAck{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelOrderAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelOrderAck) ProtoMessage() {}
+
+func (x *CancelOrderAck) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelOrderAck.ProtoReflect.Descriptor instead.
+func (*CancelOrderAck) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CancelOrderAck) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *CancelOrderAck) GetReason() CancelRejectReason {
+	if x != nil {
+		return x.Reason
+	}
+	return CancelRejectReason_CANCEL_REJECT_REASON_UNSPECIFIED
+}
+
+func (x *CancelOrderAck) GetOrder() *OrderState {
+	if x != nil {
+		return x.Order
+	}
+	return nil
+}
+
+type ModifyOrderRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     uint64                 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Symbol        uint32                 `protobuf:"varint,2,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	OrderId       uint64                 `protobuf:"varint,3,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	GatewayId     string                 `protobuf:"bytes,4,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	NewPriceMinor *int64                 `protobuf:"varint,5,opt,name=new_price_minor,json=newPriceMinor,proto3,oneof" json:"new_price_minor,omitempty"`
+	NewQuantity   *int64                 `protobuf:"varint,6,opt,name=new_quantity,json=newQuantity,proto3,oneof" json:"new_quantity,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ModifyOrderRequest) Reset() {
+	*x = ModifyOrderRequest{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModifyOrderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModifyOrderRequest) ProtoMessage() {}
+
+func (x *ModifyOrderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModifyOrderRequest.ProtoReflect.Descriptor instead.
+func (*ModifyOrderRequest) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ModifyOrderRequest) GetAccountId() uint64 {
+	if x != nil {
+		return x.AccountId
+	}
+	return 0
+}
+
+func (x *ModifyOrderRequest) GetSymbol() uint32 {
+	if x != nil {
+		return x.Symbol
+	}
+	return 0
+}
+
+func (x *ModifyOrderRequest) GetOrderId() uint64 {
+	if x != nil {
+		return x.OrderId
+	}
+	return 0
+}
+
+func (x *ModifyOrderRequest) GetGatewayId() string {
+	if x != nil {
+		return x.GatewayId
+	}
+	return ""
+}
+
+func (x *ModifyOrderRequest) GetNewPriceMinor() int64 {
+	if x != nil && x.NewPriceMinor != nil {
+		return *x.NewPriceMinor
+	}
+	return 0
+}
+
+func (x *ModifyOrderRequest) GetNewQuantity() int64 {
+	if x != nil && x.NewQuantity != nil {
+		return *x.NewQuantity
+	}
+	return 0
+}
+
+type ModifyOrderAck struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Accepted       bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	Reason         CashRejectReason       `protobuf:"varint,2,opt,name=reason,proto3,enum=exchange.v1.CashRejectReason" json:"reason,omitempty"`
+	ShortfallMinor int64                  `protobuf:"varint,3,opt,name=shortfall_minor,json=shortfallMinor,proto3" json:"shortfall_minor,omitempty"`
+	Order          *OrderState            `protobuf:"bytes,4,opt,name=order,proto3" json:"order,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ModifyOrderAck) Reset() {
+	*x = ModifyOrderAck{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModifyOrderAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModifyOrderAck) ProtoMessage() {}
+
+func (x *ModifyOrderAck) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModifyOrderAck.ProtoReflect.Descriptor instead.
+func (*ModifyOrderAck) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ModifyOrderAck) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *ModifyOrderAck) GetReason() CashRejectReason {
+	if x != nil {
+		return x.Reason
+	}
+	return CashRejectReason_CASH_REJECT_REASON_UNSPECIFIED
+}
+
+func (x *ModifyOrderAck) GetShortfallMinor() int64 {
+	if x != nil {
+		return x.ShortfallMinor
+	}
+	return 0
+}
+
+func (x *ModifyOrderAck) GetOrder() *OrderState {
+	if x != nil {
+		return x.Order
+	}
+	return nil
+}
+
+type OrderState struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	AccountId           uint64                 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	ClientOrderId       string                 `protobuf:"bytes,2,opt,name=client_order_id,json=clientOrderId,proto3" json:"client_order_id,omitempty"`
+	Symbol              uint32                 `protobuf:"varint,3,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	OrderId             uint64                 `protobuf:"varint,4,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"` // 0 = not known yet
+	Side                Side                   `protobuf:"varint,5,opt,name=side,proto3,enum=exchange.v1.Side" json:"side,omitempty"`
+	Type                OrderType              `protobuf:"varint,6,opt,name=type,proto3,enum=exchange.v1.OrderType" json:"type,omitempty"`
+	TimeInForce         TimeInForce            `protobuf:"varint,7,opt,name=time_in_force,json=timeInForce,proto3,enum=exchange.v1.TimeInForce" json:"time_in_force,omitempty"`
+	PriceMinor          int64                  `protobuf:"varint,8,opt,name=price_minor,json=priceMinor,proto3" json:"price_minor,omitempty"`
+	StopPriceMinor      *int64                 `protobuf:"varint,9,opt,name=stop_price_minor,json=stopPriceMinor,proto3,oneof" json:"stop_price_minor,omitempty"`
+	Quantity            int64                  `protobuf:"varint,10,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	FilledQuantity      int64                  `protobuf:"varint,11,opt,name=filled_quantity,json=filledQuantity,proto3" json:"filled_quantity,omitempty"`
+	FilledNotionalMinor int64                  `protobuf:"varint,12,opt,name=filled_notional_minor,json=filledNotionalMinor,proto3" json:"filled_notional_minor,omitempty"` // avg = notional / filled
+	Status              OrderStatus            `protobuf:"varint,13,opt,name=status,proto3,enum=exchange.v1.OrderStatus" json:"status,omitempty"`
+	EngineRejectReason  RejectReason           `protobuf:"varint,14,opt,name=engine_reject_reason,json=engineRejectReason,proto3,enum=exchange.v1.RejectReason" json:"engine_reject_reason,omitempty"`
+	CashRejectReason    CashRejectReason       `protobuf:"varint,15,opt,name=cash_reject_reason,json=cashRejectReason,proto3,enum=exchange.v1.CashRejectReason" json:"cash_reject_reason,omitempty"`
+	CreatedTs           int64                  `protobuf:"varint,16,opt,name=created_ts,json=createdTs,proto3" json:"created_ts,omitempty"`
+	UpdatedTs           int64                  `protobuf:"varint,17,opt,name=updated_ts,json=updatedTs,proto3" json:"updated_ts,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *OrderState) Reset() {
+	*x = OrderState{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrderState) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrderState) ProtoMessage() {}
+
+func (x *OrderState) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrderState.ProtoReflect.Descriptor instead.
+func (*OrderState) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *OrderState) GetAccountId() uint64 {
+	if x != nil {
+		return x.AccountId
+	}
+	return 0
+}
+
+func (x *OrderState) GetClientOrderId() string {
+	if x != nil {
+		return x.ClientOrderId
+	}
+	return ""
+}
+
+func (x *OrderState) GetSymbol() uint32 {
+	if x != nil {
+		return x.Symbol
+	}
+	return 0
+}
+
+func (x *OrderState) GetOrderId() uint64 {
+	if x != nil {
+		return x.OrderId
+	}
+	return 0
+}
+
+func (x *OrderState) GetSide() Side {
+	if x != nil {
+		return x.Side
+	}
+	return Side_SIDE_UNSPECIFIED
+}
+
+func (x *OrderState) GetType() OrderType {
+	if x != nil {
+		return x.Type
+	}
+	return OrderType_ORDER_TYPE_UNSPECIFIED
+}
+
+func (x *OrderState) GetTimeInForce() TimeInForce {
+	if x != nil {
+		return x.TimeInForce
+	}
+	return TimeInForce_TIME_IN_FORCE_UNSPECIFIED
+}
+
+func (x *OrderState) GetPriceMinor() int64 {
+	if x != nil {
+		return x.PriceMinor
+	}
+	return 0
+}
+
+func (x *OrderState) GetStopPriceMinor() int64 {
+	if x != nil && x.StopPriceMinor != nil {
+		return *x.StopPriceMinor
+	}
+	return 0
+}
+
+func (x *OrderState) GetQuantity() int64 {
+	if x != nil {
+		return x.Quantity
+	}
+	return 0
+}
+
+func (x *OrderState) GetFilledQuantity() int64 {
+	if x != nil {
+		return x.FilledQuantity
+	}
+	return 0
+}
+
+func (x *OrderState) GetFilledNotionalMinor() int64 {
+	if x != nil {
+		return x.FilledNotionalMinor
+	}
+	return 0
+}
+
+func (x *OrderState) GetStatus() OrderStatus {
+	if x != nil {
+		return x.Status
+	}
+	return OrderStatus_ORDER_STATUS_UNSPECIFIED
+}
+
+func (x *OrderState) GetEngineRejectReason() RejectReason {
+	if x != nil {
+		return x.EngineRejectReason
+	}
+	return RejectReason_REJECT_REASON_UNSPECIFIED
+}
+
+func (x *OrderState) GetCashRejectReason() CashRejectReason {
+	if x != nil {
+		return x.CashRejectReason
+	}
+	return CashRejectReason_CASH_REJECT_REASON_UNSPECIFIED
+}
+
+func (x *OrderState) GetCreatedTs() int64 {
+	if x != nil {
+		return x.CreatedTs
+	}
+	return 0
+}
+
+func (x *OrderState) GetUpdatedTs() int64 {
+	if x != nil {
+		return x.UpdatedTs
+	}
+	return 0
+}
+
+type GetAccountRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     uint64                 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAccountRequest) Reset() {
+	*x = GetAccountRequest{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAccountRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAccountRequest) ProtoMessage() {}
+
+func (x *GetAccountRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAccountRequest.ProtoReflect.Descriptor instead.
+func (*GetAccountRequest) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetAccountRequest) GetAccountId() uint64 {
+	if x != nil {
+		return x.AccountId
+	}
+	return 0
+}
+
+type Position struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Symbol           uint32                 `protobuf:"varint,1,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	FreeQty          int64                  `protobuf:"varint,2,opt,name=free_qty,json=freeQty,proto3" json:"free_qty,omitempty"`
+	LockedQty        int64                  `protobuf:"varint,3,opt,name=locked_qty,json=lockedQty,proto3" json:"locked_qty,omitempty"`
+	AvgPriceMinor    int64                  `protobuf:"varint,4,opt,name=avg_price_minor,json=avgPriceMinor,proto3" json:"avg_price_minor,omitempty"`
+	RealizedPnlMinor int64                  `protobuf:"varint,5,opt,name=realized_pnl_minor,json=realizedPnlMinor,proto3" json:"realized_pnl_minor,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *Position) Reset() {
+	*x = Position{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Position) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Position) ProtoMessage() {}
+
+func (x *Position) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Position.ProtoReflect.Descriptor instead.
+func (*Position) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *Position) GetSymbol() uint32 {
+	if x != nil {
+		return x.Symbol
+	}
+	return 0
+}
+
+func (x *Position) GetFreeQty() int64 {
+	if x != nil {
+		return x.FreeQty
+	}
+	return 0
+}
+
+func (x *Position) GetLockedQty() int64 {
+	if x != nil {
+		return x.LockedQty
+	}
+	return 0
+}
+
+func (x *Position) GetAvgPriceMinor() int64 {
+	if x != nil {
+		return x.AvgPriceMinor
+	}
+	return 0
+}
+
+func (x *Position) GetRealizedPnlMinor() int64 {
+	if x != nil {
+		return x.RealizedPnlMinor
+	}
+	return 0
+}
+
+type Balances struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	CashFreeMinor    int64                  `protobuf:"varint,1,opt,name=cash_free_minor,json=cashFreeMinor,proto3" json:"cash_free_minor,omitempty"`
+	CashLockedMinor  int64                  `protobuf:"varint,2,opt,name=cash_locked_minor,json=cashLockedMinor,proto3" json:"cash_locked_minor,omitempty"`
+	RealizedPnlMinor int64                  `protobuf:"varint,3,opt,name=realized_pnl_minor,json=realizedPnlMinor,proto3" json:"realized_pnl_minor,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *Balances) Reset() {
+	*x = Balances{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Balances) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Balances) ProtoMessage() {}
+
+func (x *Balances) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Balances.ProtoReflect.Descriptor instead.
+func (*Balances) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *Balances) GetCashFreeMinor() int64 {
+	if x != nil {
+		return x.CashFreeMinor
+	}
+	return 0
+}
+
+func (x *Balances) GetCashLockedMinor() int64 {
+	if x != nil {
+		return x.CashLockedMinor
+	}
+	return 0
+}
+
+func (x *Balances) GetRealizedPnlMinor() int64 {
+	if x != nil {
+		return x.RealizedPnlMinor
+	}
+	return 0
+}
+
+type AccountSnapshot struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Found         bool                   `protobuf:"varint,1,opt,name=found,proto3" json:"found,omitempty"`
+	AccountId     uint64                 `protobuf:"varint,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	AccountSeq    uint64                 `protobuf:"varint,3,opt,name=account_seq,json=accountSeq,proto3" json:"account_seq,omitempty"`
+	Balances      *Balances              `protobuf:"bytes,4,opt,name=balances,proto3" json:"balances,omitempty"`
+	Positions     []*Position            `protobuf:"bytes,5,rep,name=positions,proto3" json:"positions,omitempty"`
+	OpenOrders    []*OrderState          `protobuf:"bytes,6,rep,name=open_orders,json=openOrders,proto3" json:"open_orders,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountSnapshot) Reset() {
+	*x = AccountSnapshot{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountSnapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountSnapshot) ProtoMessage() {}
+
+func (x *AccountSnapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountSnapshot.ProtoReflect.Descriptor instead.
+func (*AccountSnapshot) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AccountSnapshot) GetFound() bool {
+	if x != nil {
+		return x.Found
+	}
+	return false
+}
+
+func (x *AccountSnapshot) GetAccountId() uint64 {
+	if x != nil {
+		return x.AccountId
+	}
+	return 0
+}
+
+func (x *AccountSnapshot) GetAccountSeq() uint64 {
+	if x != nil {
+		return x.AccountSeq
+	}
+	return 0
+}
+
+func (x *AccountSnapshot) GetBalances() *Balances {
+	if x != nil {
+		return x.Balances
+	}
+	return nil
+}
+
+func (x *AccountSnapshot) GetPositions() []*Position {
+	if x != nil {
+		return x.Positions
+	}
+	return nil
+}
+
+func (x *AccountSnapshot) GetOpenOrders() []*OrderState {
+	if x != nil {
+		return x.OpenOrders
+	}
+	return nil
+}
+
+type GetOrdersRequest struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	AccountId     uint64                  `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Filter        GetOrdersRequest_Filter `protobuf:"varint,2,opt,name=filter,proto3,enum=exchange.v1.GetOrdersRequest_Filter" json:"filter,omitempty"`
+	OrderId       *uint64                 `protobuf:"varint,3,opt,name=order_id,json=orderId,proto3,oneof" json:"order_id,omitempty"`
+	Symbol        *uint32                 `protobuf:"varint,4,opt,name=symbol,proto3,oneof" json:"symbol,omitempty"`                                     // both set = one order by order_id
+	ClientOrderId *string                 `protobuf:"bytes,5,opt,name=client_order_id,json=clientOrderId,proto3,oneof" json:"client_order_id,omitempty"` // one order by client id
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOrdersRequest) Reset() {
+	*x = GetOrdersRequest{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOrdersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrdersRequest) ProtoMessage() {}
+
+func (x *GetOrdersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrdersRequest.ProtoReflect.Descriptor instead.
+func (*GetOrdersRequest) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetOrdersRequest) GetAccountId() uint64 {
+	if x != nil {
+		return x.AccountId
+	}
+	return 0
+}
+
+func (x *GetOrdersRequest) GetFilter() GetOrdersRequest_Filter {
+	if x != nil {
+		return x.Filter
+	}
+	return GetOrdersRequest_FILTER_UNSPECIFIED
+}
+
+func (x *GetOrdersRequest) GetOrderId() uint64 {
+	if x != nil && x.OrderId != nil {
+		return *x.OrderId
+	}
+	return 0
+}
+
+func (x *GetOrdersRequest) GetSymbol() uint32 {
+	if x != nil && x.Symbol != nil {
+		return *x.Symbol
+	}
+	return 0
+}
+
+func (x *GetOrdersRequest) GetClientOrderId() string {
+	if x != nil && x.ClientOrderId != nil {
+		return *x.ClientOrderId
+	}
+	return ""
+}
+
+type GetOrdersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Orders        []*OrderState          `protobuf:"bytes,1,rep,name=orders,proto3" json:"orders,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOrdersResponse) Reset() {
+	*x = GetOrdersResponse{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOrdersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrdersResponse) ProtoMessage() {}
+
+func (x *GetOrdersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrdersResponse.ProtoReflect.Descriptor instead.
+func (*GetOrdersResponse) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetOrdersResponse) GetOrders() []*OrderState {
+	if x != nil {
+		return x.Orders
+	}
+	return nil
+}
+
+type AccountUpdatesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GatewayId     string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountUpdatesRequest) Reset() {
+	*x = AccountUpdatesRequest{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountUpdatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountUpdatesRequest) ProtoMessage() {}
+
+func (x *AccountUpdatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountUpdatesRequest.ProtoReflect.Descriptor instead.
+func (*AccountUpdatesRequest) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AccountUpdatesRequest) GetGatewayId() string {
+	if x != nil {
+		return x.GatewayId
+	}
+	return ""
+}
+
+type AccountUpdate struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	AccountId  uint64                 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	AccountSeq uint64                 `protobuf:"varint,2,opt,name=account_seq,json=accountSeq,proto3" json:"account_seq,omitempty"` // per account, +1 per update, no gaps
+	Ts         int64                  `protobuf:"varint,3,opt,name=ts,proto3" json:"ts,omitempty"`
+	// Types that are valid to be assigned to Cause:
+	//
+	//	*AccountUpdate_OrderEvent
+	//	*AccountUpdate_Transfer
+	Cause         isAccountUpdate_Cause `protobuf_oneof:"cause"`
+	Balances      *Balances             `protobuf:"bytes,6,opt,name=balances,proto3" json:"balances,omitempty"`   // AFTER this update
+	Positions     []*Position           `protobuf:"bytes,7,rep,name=positions,proto3" json:"positions,omitempty"` // only positions changed by this update, AFTER
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountUpdate) Reset() {
+	*x = AccountUpdate{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountUpdate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountUpdate) ProtoMessage() {}
+
+func (x *AccountUpdate) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountUpdate.ProtoReflect.Descriptor instead.
+func (*AccountUpdate) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *AccountUpdate) GetAccountId() uint64 {
+	if x != nil {
+		return x.AccountId
+	}
+	return 0
+}
+
+func (x *AccountUpdate) GetAccountSeq() uint64 {
+	if x != nil {
+		return x.AccountSeq
+	}
+	return 0
+}
+
+func (x *AccountUpdate) GetTs() int64 {
+	if x != nil {
+		return x.Ts
+	}
+	return 0
+}
+
+func (x *AccountUpdate) GetCause() isAccountUpdate_Cause {
+	if x != nil {
+		return x.Cause
+	}
+	return nil
+}
+
+func (x *AccountUpdate) GetOrderEvent() *OrderEvent {
+	if x != nil {
+		if x, ok := x.Cause.(*AccountUpdate_OrderEvent); ok {
+			return x.OrderEvent
+		}
+	}
+	return nil
+}
+
+func (x *AccountUpdate) GetTransfer() *TransferEvent {
+	if x != nil {
+		if x, ok := x.Cause.(*AccountUpdate_Transfer); ok {
+			return x.Transfer
+		}
+	}
+	return nil
+}
+
+func (x *AccountUpdate) GetBalances() *Balances {
+	if x != nil {
+		return x.Balances
+	}
+	return nil
+}
+
+func (x *AccountUpdate) GetPositions() []*Position {
+	if x != nil {
+		return x.Positions
+	}
+	return nil
+}
+
+type isAccountUpdate_Cause interface {
+	isAccountUpdate_Cause()
+}
+
+type AccountUpdate_OrderEvent struct {
+	OrderEvent *OrderEvent `protobuf:"bytes,4,opt,name=order_event,json=orderEvent,proto3,oneof"`
+}
+
+type AccountUpdate_Transfer struct {
+	Transfer *TransferEvent `protobuf:"bytes,5,opt,name=transfer,proto3,oneof"`
+}
+
+func (*AccountUpdate_OrderEvent) isAccountUpdate_Cause() {}
+
+func (*AccountUpdate_Transfer) isAccountUpdate_Cause() {}
+
+type OrderEvent struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Kind           OrderEvent_Kind        `protobuf:"varint,1,opt,name=kind,proto3,enum=exchange.v1.OrderEvent_Kind" json:"kind,omitempty"`
+	Order          *OrderState            `protobuf:"bytes,2,opt,name=order,proto3" json:"order,omitempty"`                                            // AFTER this event
+	FillPriceMinor int64                  `protobuf:"varint,3,opt,name=fill_price_minor,json=fillPriceMinor,proto3" json:"fill_price_minor,omitempty"` // fills only
+	FillQuantity   int64                  `protobuf:"varint,4,opt,name=fill_quantity,json=fillQuantity,proto3" json:"fill_quantity,omitempty"`         // fills only
+	EngineSeq      uint64                 `protobuf:"varint,5,opt,name=engine_seq,json=engineSeq,proto3" json:"engine_seq,omitempty"`                  // the engine's per-symbol event seq that caused it
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *OrderEvent) Reset() {
+	*x = OrderEvent{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrderEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrderEvent) ProtoMessage() {}
+
+func (x *OrderEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrderEvent.ProtoReflect.Descriptor instead.
+func (*OrderEvent) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *OrderEvent) GetKind() OrderEvent_Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return OrderEvent_KIND_UNSPECIFIED
+}
+
+func (x *OrderEvent) GetOrder() *OrderState {
+	if x != nil {
+		return x.Order
+	}
+	return nil
+}
+
+func (x *OrderEvent) GetFillPriceMinor() int64 {
+	if x != nil {
+		return x.FillPriceMinor
+	}
+	return 0
+}
+
+func (x *OrderEvent) GetFillQuantity() int64 {
+	if x != nil {
+		return x.FillQuantity
+	}
+	return 0
+}
+
+func (x *OrderEvent) GetEngineSeq() uint64 {
+	if x != nil {
+		return x.EngineSeq
+	}
+	return 0
+}
+
+type TransferEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TransferId    string                 `protobuf:"bytes,1,opt,name=transfer_id,json=transferId,proto3" json:"transfer_id,omitempty"`
+	Deposit       bool                   `protobuf:"varint,2,opt,name=deposit,proto3" json:"deposit,omitempty"`
+	AmountMinor   int64                  `protobuf:"varint,3,opt,name=amount_minor,json=amountMinor,proto3" json:"amount_minor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransferEvent) Reset() {
+	*x = TransferEvent{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferEvent) ProtoMessage() {}
+
+func (x *TransferEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferEvent.ProtoReflect.Descriptor instead.
+func (*TransferEvent) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *TransferEvent) GetTransferId() string {
+	if x != nil {
+		return x.TransferId
+	}
+	return ""
+}
+
+func (x *TransferEvent) GetDeposit() bool {
+	if x != nil {
+		return x.Deposit
+	}
+	return false
+}
+
+func (x *TransferEvent) GetAmountMinor() int64 {
+	if x != nil {
+		return x.AmountMinor
+	}
+	return 0
+}
+
+type TransferRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TransferId    string                 `protobuf:"bytes,1,opt,name=transfer_id,json=transferId,proto3" json:"transfer_id,omitempty"`
+	AccountId     uint64                 `protobuf:"varint,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	AmountMinor   int64                  `protobuf:"varint,3,opt,name=amount_minor,json=amountMinor,proto3" json:"amount_minor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransferRequest) Reset() {
+	*x = TransferRequest{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferRequest) ProtoMessage() {}
+
+func (x *TransferRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferRequest.ProtoReflect.Descriptor instead.
+func (*TransferRequest) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *TransferRequest) GetTransferId() string {
+	if x != nil {
+		return x.TransferId
+	}
+	return ""
+}
+
+func (x *TransferRequest) GetAccountId() uint64 {
+	if x != nil {
+		return x.AccountId
+	}
+	return 0
+}
+
+func (x *TransferRequest) GetAmountMinor() int64 {
+	if x != nil {
+		return x.AmountMinor
+	}
+	return 0
+}
+
+type TransferAck struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Status         TransferStatus         `protobuf:"varint,1,opt,name=status,proto3,enum=exchange.v1.TransferStatus" json:"status,omitempty"`
+	ShortfallMinor int64                  `protobuf:"varint,2,opt,name=shortfall_minor,json=shortfallMinor,proto3" json:"shortfall_minor,omitempty"`
+	Balances       *Balances              `protobuf:"bytes,3,opt,name=balances,proto3" json:"balances,omitempty"`
+	AccountSeq     uint64                 `protobuf:"varint,4,opt,name=account_seq,json=accountSeq,proto3" json:"account_seq,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *TransferAck) Reset() {
+	*x = TransferAck{}
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferAck) ProtoMessage() {}
+
+func (x *TransferAck) ProtoReflect() protoreflect.Message {
+	mi := &file_exchange_v1_cash_owner_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferAck.ProtoReflect.Descriptor instead.
+func (*TransferAck) Descriptor() ([]byte, []int) {
+	return file_exchange_v1_cash_owner_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *TransferAck) GetStatus() TransferStatus {
+	if x != nil {
+		return x.Status
+	}
+	return TransferStatus_TRANSFER_STATUS_UNSPECIFIED
+}
+
+func (x *TransferAck) GetShortfallMinor() int64 {
+	if x != nil {
+		return x.ShortfallMinor
+	}
+	return 0
+}
+
+func (x *TransferAck) GetBalances() *Balances {
+	if x != nil {
+		return x.Balances
+	}
+	return nil
+}
+
+func (x *TransferAck) GetAccountSeq() uint64 {
+	if x != nil {
+		return x.AccountSeq
+	}
+	return 0
+}
+
 var File_exchange_v1_cash_owner_proto protoreflect.FileDescriptor
 
 const file_exchange_v1_cash_owner_proto_rawDesc = "" +
 	"\n" +
-	"\x1cexchange/v1/cash_owner.proto\x12\vexchange.v1\x1a\x1aexchange/v1/commands.proto\"\xf5\x01\n" +
+	"\x1cexchange/v1/cash_owner.proto\x12\vexchange.v1\x1a\x1aexchange/v1/commands.proto\x1a\x1dexchange/v1/engine_feed.proto\"\xa3\x03\n" +
 	"\x11PlaceOrderRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\x04R\taccountId\x12&\n" +
@@ -239,18 +1862,206 @@ const file_exchange_v1_cash_owner_proto_rawDesc = "" +
 	"priceMinor\x12\x1a\n" +
 	"\bquantity\x18\x06 \x01(\x03R\bquantity\x12\x1d\n" +
 	"\n" +
-	"gateway_id\x18\a \x01(\tR\tgatewayId\"\x8b\x01\n" +
+	"gateway_id\x18\a \x01(\tR\tgatewayId\x12<\n" +
+	"\rtime_in_force\x18\b \x01(\x0e2\x18.exchange.v1.TimeInForceR\vtimeInForce\x12*\n" +
+	"\x04type\x18\t \x01(\x0e2\x16.exchange.v1.OrderTypeR\x04type\x12-\n" +
+	"\x10stop_price_minor\x18\n" +
+	" \x01(\x03H\x00R\x0estopPriceMinor\x88\x01\x01B\x13\n" +
+	"\x11_stop_price_minor\"\xd8\x01\n" +
 	"\rPlaceOrderAck\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x125\n" +
 	"\x06reason\x18\x02 \x01(\x0e2\x1d.exchange.v1.CashRejectReasonR\x06reason\x12'\n" +
-	"\x0fshortfall_minor\x18\x03 \x01(\x03R\x0eshortfallMinor*\x8e\x01\n" +
+	"\x0fshortfall_minor\x18\x03 \x01(\x03R\x0eshortfallMinor\x12\x1c\n" +
+	"\tduplicate\x18\x04 \x01(\bR\tduplicate\x12-\n" +
+	"\x05order\x18\x05 \x01(\v2\x17.exchange.v1.OrderStateR\x05order\"\x85\x01\n" +
+	"\x12CancelOrderRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\x04R\taccountId\x12\x16\n" +
+	"\x06symbol\x18\x02 \x01(\rR\x06symbol\x12\x19\n" +
+	"\border_id\x18\x03 \x01(\x04R\aorderId\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\x04 \x01(\tR\tgatewayId\"\x94\x01\n" +
+	"\x0eCancelOrderAck\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x127\n" +
+	"\x06reason\x18\x02 \x01(\x0e2\x1f.exchange.v1.CancelRejectReasonR\x06reason\x12-\n" +
+	"\x05order\x18\x03 \x01(\v2\x17.exchange.v1.OrderStateR\x05order\"\xff\x01\n" +
+	"\x12ModifyOrderRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\x04R\taccountId\x12\x16\n" +
+	"\x06symbol\x18\x02 \x01(\rR\x06symbol\x12\x19\n" +
+	"\border_id\x18\x03 \x01(\x04R\aorderId\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\x04 \x01(\tR\tgatewayId\x12+\n" +
+	"\x0fnew_price_minor\x18\x05 \x01(\x03H\x00R\rnewPriceMinor\x88\x01\x01\x12&\n" +
+	"\fnew_quantity\x18\x06 \x01(\x03H\x01R\vnewQuantity\x88\x01\x01B\x12\n" +
+	"\x10_new_price_minorB\x0f\n" +
+	"\r_new_quantity\"\xbb\x01\n" +
+	"\x0eModifyOrderAck\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x125\n" +
+	"\x06reason\x18\x02 \x01(\x0e2\x1d.exchange.v1.CashRejectReasonR\x06reason\x12'\n" +
+	"\x0fshortfall_minor\x18\x03 \x01(\x03R\x0eshortfallMinor\x12-\n" +
+	"\x05order\x18\x04 \x01(\v2\x17.exchange.v1.OrderStateR\x05order\"\xff\x05\n" +
+	"\n" +
+	"OrderState\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\x04R\taccountId\x12&\n" +
+	"\x0fclient_order_id\x18\x02 \x01(\tR\rclientOrderId\x12\x16\n" +
+	"\x06symbol\x18\x03 \x01(\rR\x06symbol\x12\x19\n" +
+	"\border_id\x18\x04 \x01(\x04R\aorderId\x12%\n" +
+	"\x04side\x18\x05 \x01(\x0e2\x11.exchange.v1.SideR\x04side\x12*\n" +
+	"\x04type\x18\x06 \x01(\x0e2\x16.exchange.v1.OrderTypeR\x04type\x12<\n" +
+	"\rtime_in_force\x18\a \x01(\x0e2\x18.exchange.v1.TimeInForceR\vtimeInForce\x12\x1f\n" +
+	"\vprice_minor\x18\b \x01(\x03R\n" +
+	"priceMinor\x12-\n" +
+	"\x10stop_price_minor\x18\t \x01(\x03H\x00R\x0estopPriceMinor\x88\x01\x01\x12\x1a\n" +
+	"\bquantity\x18\n" +
+	" \x01(\x03R\bquantity\x12'\n" +
+	"\x0ffilled_quantity\x18\v \x01(\x03R\x0efilledQuantity\x122\n" +
+	"\x15filled_notional_minor\x18\f \x01(\x03R\x13filledNotionalMinor\x120\n" +
+	"\x06status\x18\r \x01(\x0e2\x18.exchange.v1.OrderStatusR\x06status\x12K\n" +
+	"\x14engine_reject_reason\x18\x0e \x01(\x0e2\x19.exchange.v1.RejectReasonR\x12engineRejectReason\x12K\n" +
+	"\x12cash_reject_reason\x18\x0f \x01(\x0e2\x1d.exchange.v1.CashRejectReasonR\x10cashRejectReason\x12\x1d\n" +
+	"\n" +
+	"created_ts\x18\x10 \x01(\x03R\tcreatedTs\x12\x1d\n" +
+	"\n" +
+	"updated_ts\x18\x11 \x01(\x03R\tupdatedTsB\x13\n" +
+	"\x11_stop_price_minor\"2\n" +
+	"\x11GetAccountRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\x04R\taccountId\"\xb2\x01\n" +
+	"\bPosition\x12\x16\n" +
+	"\x06symbol\x18\x01 \x01(\rR\x06symbol\x12\x19\n" +
+	"\bfree_qty\x18\x02 \x01(\x03R\afreeQty\x12\x1d\n" +
+	"\n" +
+	"locked_qty\x18\x03 \x01(\x03R\tlockedQty\x12&\n" +
+	"\x0favg_price_minor\x18\x04 \x01(\x03R\ravgPriceMinor\x12,\n" +
+	"\x12realized_pnl_minor\x18\x05 \x01(\x03R\x10realizedPnlMinor\"\x8c\x01\n" +
+	"\bBalances\x12&\n" +
+	"\x0fcash_free_minor\x18\x01 \x01(\x03R\rcashFreeMinor\x12*\n" +
+	"\x11cash_locked_minor\x18\x02 \x01(\x03R\x0fcashLockedMinor\x12,\n" +
+	"\x12realized_pnl_minor\x18\x03 \x01(\x03R\x10realizedPnlMinor\"\x89\x02\n" +
+	"\x0fAccountSnapshot\x12\x14\n" +
+	"\x05found\x18\x01 \x01(\bR\x05found\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x02 \x01(\x04R\taccountId\x12\x1f\n" +
+	"\vaccount_seq\x18\x03 \x01(\x04R\n" +
+	"accountSeq\x121\n" +
+	"\bbalances\x18\x04 \x01(\v2\x15.exchange.v1.BalancesR\bbalances\x123\n" +
+	"\tpositions\x18\x05 \x03(\v2\x15.exchange.v1.PositionR\tpositions\x128\n" +
+	"\vopen_orders\x18\x06 \x03(\v2\x17.exchange.v1.OrderStateR\n" +
+	"openOrders\"\xdb\x02\n" +
+	"\x10GetOrdersRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\x04R\taccountId\x12<\n" +
+	"\x06filter\x18\x02 \x01(\x0e2$.exchange.v1.GetOrdersRequest.FilterR\x06filter\x12\x1e\n" +
+	"\border_id\x18\x03 \x01(\x04H\x00R\aorderId\x88\x01\x01\x12\x1b\n" +
+	"\x06symbol\x18\x04 \x01(\rH\x01R\x06symbol\x88\x01\x01\x12+\n" +
+	"\x0fclient_order_id\x18\x05 \x01(\tH\x02R\rclientOrderId\x88\x01\x01\"T\n" +
+	"\x06Filter\x12\x16\n" +
+	"\x12FILTER_UNSPECIFIED\x10\x00\x12\x0f\n" +
+	"\vFILTER_OPEN\x10\x01\x12\x11\n" +
+	"\rFILTER_CLOSED\x10\x02\x12\x0e\n" +
+	"\n" +
+	"FILTER_ALL\x10\x03B\v\n" +
+	"\t_order_idB\t\n" +
+	"\a_symbolB\x12\n" +
+	"\x10_client_order_id\"D\n" +
+	"\x11GetOrdersResponse\x12/\n" +
+	"\x06orders\x18\x01 \x03(\v2\x17.exchange.v1.OrderStateR\x06orders\"6\n" +
+	"\x15AccountUpdatesRequest\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\x01 \x01(\tR\tgatewayId\"\xc6\x02\n" +
+	"\rAccountUpdate\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\x04R\taccountId\x12\x1f\n" +
+	"\vaccount_seq\x18\x02 \x01(\x04R\n" +
+	"accountSeq\x12\x0e\n" +
+	"\x02ts\x18\x03 \x01(\x03R\x02ts\x12:\n" +
+	"\vorder_event\x18\x04 \x01(\v2\x17.exchange.v1.OrderEventH\x00R\n" +
+	"orderEvent\x128\n" +
+	"\btransfer\x18\x05 \x01(\v2\x1a.exchange.v1.TransferEventH\x00R\btransfer\x121\n" +
+	"\bbalances\x18\x06 \x01(\v2\x15.exchange.v1.BalancesR\bbalances\x123\n" +
+	"\tpositions\x18\a \x03(\v2\x15.exchange.v1.PositionR\tpositionsB\a\n" +
+	"\x05cause\"\xae\x03\n" +
+	"\n" +
+	"OrderEvent\x120\n" +
+	"\x04kind\x18\x01 \x01(\x0e2\x1c.exchange.v1.OrderEvent.KindR\x04kind\x12-\n" +
+	"\x05order\x18\x02 \x01(\v2\x17.exchange.v1.OrderStateR\x05order\x12(\n" +
+	"\x10fill_price_minor\x18\x03 \x01(\x03R\x0efillPriceMinor\x12#\n" +
+	"\rfill_quantity\x18\x04 \x01(\x03R\ffillQuantity\x12\x1d\n" +
+	"\n" +
+	"engine_seq\x18\x05 \x01(\x04R\tengineSeq\"\xd0\x01\n" +
+	"\x04Kind\x12\x14\n" +
+	"\x10KIND_UNSPECIFIED\x10\x00\x12\f\n" +
+	"\bKIND_NEW\x10\x01\x12\x15\n" +
+	"\x11KIND_PARTIAL_FILL\x10\x02\x12\r\n" +
+	"\tKIND_FILL\x10\x03\x12\x11\n" +
+	"\rKIND_CANCELED\x10\x04\x12\x18\n" +
+	"\x14KIND_CANCEL_REJECTED\x10\x05\x12\x11\n" +
+	"\rKIND_REJECTED\x10\x06\x12\x10\n" +
+	"\fKIND_EXPIRED\x10\a\x12\x11\n" +
+	"\rKIND_REPLACED\x10\b\x12\x19\n" +
+	"\x15KIND_REPLACE_REJECTED\x10\t\"m\n" +
+	"\rTransferEvent\x12\x1f\n" +
+	"\vtransfer_id\x18\x01 \x01(\tR\n" +
+	"transferId\x12\x18\n" +
+	"\adeposit\x18\x02 \x01(\bR\adeposit\x12!\n" +
+	"\famount_minor\x18\x03 \x01(\x03R\vamountMinor\"t\n" +
+	"\x0fTransferRequest\x12\x1f\n" +
+	"\vtransfer_id\x18\x01 \x01(\tR\n" +
+	"transferId\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x02 \x01(\x04R\taccountId\x12!\n" +
+	"\famount_minor\x18\x03 \x01(\x03R\vamountMinor\"\xbf\x01\n" +
+	"\vTransferAck\x123\n" +
+	"\x06status\x18\x01 \x01(\x0e2\x1b.exchange.v1.TransferStatusR\x06status\x12'\n" +
+	"\x0fshortfall_minor\x18\x02 \x01(\x03R\x0eshortfallMinor\x121\n" +
+	"\bbalances\x18\x03 \x01(\v2\x15.exchange.v1.BalancesR\bbalances\x12\x1f\n" +
+	"\vaccount_seq\x18\x04 \x01(\x04R\n" +
+	"accountSeq*\xd6\x02\n" +
 	"\x10CashRejectReason\x12\"\n" +
 	"\x1eCASH_REJECT_REASON_UNSPECIFIED\x10\x00\x12(\n" +
 	"$CASH_REJECT_REASON_INSUFFICIENT_CASH\x10\x01\x12,\n" +
-	"(CASH_REJECT_REASON_INSUFFICIENT_HOLDINGS\x10\x022U\n" +
+	"(CASH_REJECT_REASON_INSUFFICIENT_HOLDINGS\x10\x02\x12&\n" +
+	"\"CASH_REJECT_REASON_UNKNOWN_ACCOUNT\x10\x03\x12$\n" +
+	" CASH_REJECT_REASON_EXCHANGE_BUSY\x10\x04\x12%\n" +
+	"!CASH_REJECT_REASON_UNKNOWN_SYMBOL\x10\x05\x12+\n" +
+	"'CASH_REJECT_REASON_EXCHANGE_UNAVAILABLE\x10\x06\x12$\n" +
+	" CASH_REJECT_REASON_NOT_SUPPORTED\x10\a*\xe2\x01\n" +
+	"\x12CancelRejectReason\x12$\n" +
+	" CANCEL_REJECT_REASON_UNSPECIFIED\x10\x00\x12(\n" +
+	"$CANCEL_REJECT_REASON_ORDER_NOT_FOUND\x10\x01\x12%\n" +
+	"!CANCEL_REJECT_REASON_ORDER_CLOSED\x10\x02\x12&\n" +
+	"\"CANCEL_REJECT_REASON_EXCHANGE_BUSY\x10\x03\x12-\n" +
+	")CANCEL_REJECT_REASON_EXCHANGE_UNAVAILABLE\x10\x04*\xae\x02\n" +
+	"\vOrderStatus\x12\x1c\n" +
+	"\x18ORDER_STATUS_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18ORDER_STATUS_PENDING_NEW\x10\x01\x12\x14\n" +
+	"\x10ORDER_STATUS_NEW\x10\x02\x12!\n" +
+	"\x1dORDER_STATUS_PARTIALLY_FILLED\x10\x03\x12\x17\n" +
+	"\x13ORDER_STATUS_FILLED\x10\x04\x12\x19\n" +
+	"\x15ORDER_STATUS_CANCELED\x10\x05\x12\x19\n" +
+	"\x15ORDER_STATUS_REJECTED\x10\x06\x12\x18\n" +
+	"\x14ORDER_STATUS_EXPIRED\x10\a\x12\x1f\n" +
+	"\x1bORDER_STATUS_PENDING_CANCEL\x10\b\x12 \n" +
+	"\x1cORDER_STATUS_PENDING_REPLACE\x10\t*\xb9\x01\n" +
+	"\x0eTransferStatus\x12\x1f\n" +
+	"\x1bTRANSFER_STATUS_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17TRANSFER_STATUS_APPLIED\x10\x01\x12\x1d\n" +
+	"\x19TRANSFER_STATUS_DUPLICATE\x10\x02\x12%\n" +
+	"!TRANSFER_STATUS_INSUFFICIENT_CASH\x10\x03\x12#\n" +
+	"\x1fTRANSFER_STATUS_UNKNOWN_ACCOUNT\x10\x042\xeb\x04\n" +
 	"\tCashOwner\x12H\n" +
 	"\n" +
-	"PlaceOrder\x12\x1e.exchange.v1.PlaceOrderRequest\x1a\x1a.exchange.v1.PlaceOrderAckb\x06proto3"
+	"PlaceOrder\x12\x1e.exchange.v1.PlaceOrderRequest\x1a\x1a.exchange.v1.PlaceOrderAck\x12K\n" +
+	"\vCancelOrder\x12\x1f.exchange.v1.CancelOrderRequest\x1a\x1b.exchange.v1.CancelOrderAck\x12K\n" +
+	"\vModifyOrder\x12\x1f.exchange.v1.ModifyOrderRequest\x1a\x1b.exchange.v1.ModifyOrderAck\x12J\n" +
+	"\n" +
+	"GetAccount\x12\x1e.exchange.v1.GetAccountRequest\x1a\x1c.exchange.v1.AccountSnapshot\x12J\n" +
+	"\tGetOrders\x12\x1d.exchange.v1.GetOrdersRequest\x1a\x1e.exchange.v1.GetOrdersResponse\x12[\n" +
+	"\x17SubscribeAccountUpdates\x12\".exchange.v1.AccountUpdatesRequest\x1a\x1a.exchange.v1.AccountUpdate0\x01\x12A\n" +
+	"\aDeposit\x12\x1c.exchange.v1.TransferRequest\x1a\x18.exchange.v1.TransferAck\x12B\n" +
+	"\bWithdraw\x12\x1c.exchange.v1.TransferRequest\x1a\x18.exchange.v1.TransferAckb\x06proto3"
 
 var (
 	file_exchange_v1_cash_owner_proto_rawDescOnce sync.Once
@@ -264,24 +2075,89 @@ func file_exchange_v1_cash_owner_proto_rawDescGZIP() []byte {
 	return file_exchange_v1_cash_owner_proto_rawDescData
 }
 
-var file_exchange_v1_cash_owner_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_exchange_v1_cash_owner_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_exchange_v1_cash_owner_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_exchange_v1_cash_owner_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_exchange_v1_cash_owner_proto_goTypes = []any{
-	(CashRejectReason)(0),     // 0: exchange.v1.CashRejectReason
-	(*PlaceOrderRequest)(nil), // 1: exchange.v1.PlaceOrderRequest
-	(*PlaceOrderAck)(nil),     // 2: exchange.v1.PlaceOrderAck
-	(Side)(0),                 // 3: exchange.v1.Side
+	(CashRejectReason)(0),         // 0: exchange.v1.CashRejectReason
+	(CancelRejectReason)(0),       // 1: exchange.v1.CancelRejectReason
+	(OrderStatus)(0),              // 2: exchange.v1.OrderStatus
+	(TransferStatus)(0),           // 3: exchange.v1.TransferStatus
+	(GetOrdersRequest_Filter)(0),  // 4: exchange.v1.GetOrdersRequest.Filter
+	(OrderEvent_Kind)(0),          // 5: exchange.v1.OrderEvent.Kind
+	(*PlaceOrderRequest)(nil),     // 6: exchange.v1.PlaceOrderRequest
+	(*PlaceOrderAck)(nil),         // 7: exchange.v1.PlaceOrderAck
+	(*CancelOrderRequest)(nil),    // 8: exchange.v1.CancelOrderRequest
+	(*CancelOrderAck)(nil),        // 9: exchange.v1.CancelOrderAck
+	(*ModifyOrderRequest)(nil),    // 10: exchange.v1.ModifyOrderRequest
+	(*ModifyOrderAck)(nil),        // 11: exchange.v1.ModifyOrderAck
+	(*OrderState)(nil),            // 12: exchange.v1.OrderState
+	(*GetAccountRequest)(nil),     // 13: exchange.v1.GetAccountRequest
+	(*Position)(nil),              // 14: exchange.v1.Position
+	(*Balances)(nil),              // 15: exchange.v1.Balances
+	(*AccountSnapshot)(nil),       // 16: exchange.v1.AccountSnapshot
+	(*GetOrdersRequest)(nil),      // 17: exchange.v1.GetOrdersRequest
+	(*GetOrdersResponse)(nil),     // 18: exchange.v1.GetOrdersResponse
+	(*AccountUpdatesRequest)(nil), // 19: exchange.v1.AccountUpdatesRequest
+	(*AccountUpdate)(nil),         // 20: exchange.v1.AccountUpdate
+	(*OrderEvent)(nil),            // 21: exchange.v1.OrderEvent
+	(*TransferEvent)(nil),         // 22: exchange.v1.TransferEvent
+	(*TransferRequest)(nil),       // 23: exchange.v1.TransferRequest
+	(*TransferAck)(nil),           // 24: exchange.v1.TransferAck
+	(Side)(0),                     // 25: exchange.v1.Side
+	(TimeInForce)(0),              // 26: exchange.v1.TimeInForce
+	(OrderType)(0),                // 27: exchange.v1.OrderType
+	(RejectReason)(0),             // 28: exchange.v1.RejectReason
 }
 var file_exchange_v1_cash_owner_proto_depIdxs = []int32{
-	3, // 0: exchange.v1.PlaceOrderRequest.side:type_name -> exchange.v1.Side
-	0, // 1: exchange.v1.PlaceOrderAck.reason:type_name -> exchange.v1.CashRejectReason
-	1, // 2: exchange.v1.CashOwner.PlaceOrder:input_type -> exchange.v1.PlaceOrderRequest
-	2, // 3: exchange.v1.CashOwner.PlaceOrder:output_type -> exchange.v1.PlaceOrderAck
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	25, // 0: exchange.v1.PlaceOrderRequest.side:type_name -> exchange.v1.Side
+	26, // 1: exchange.v1.PlaceOrderRequest.time_in_force:type_name -> exchange.v1.TimeInForce
+	27, // 2: exchange.v1.PlaceOrderRequest.type:type_name -> exchange.v1.OrderType
+	0,  // 3: exchange.v1.PlaceOrderAck.reason:type_name -> exchange.v1.CashRejectReason
+	12, // 4: exchange.v1.PlaceOrderAck.order:type_name -> exchange.v1.OrderState
+	1,  // 5: exchange.v1.CancelOrderAck.reason:type_name -> exchange.v1.CancelRejectReason
+	12, // 6: exchange.v1.CancelOrderAck.order:type_name -> exchange.v1.OrderState
+	0,  // 7: exchange.v1.ModifyOrderAck.reason:type_name -> exchange.v1.CashRejectReason
+	12, // 8: exchange.v1.ModifyOrderAck.order:type_name -> exchange.v1.OrderState
+	25, // 9: exchange.v1.OrderState.side:type_name -> exchange.v1.Side
+	27, // 10: exchange.v1.OrderState.type:type_name -> exchange.v1.OrderType
+	26, // 11: exchange.v1.OrderState.time_in_force:type_name -> exchange.v1.TimeInForce
+	2,  // 12: exchange.v1.OrderState.status:type_name -> exchange.v1.OrderStatus
+	28, // 13: exchange.v1.OrderState.engine_reject_reason:type_name -> exchange.v1.RejectReason
+	0,  // 14: exchange.v1.OrderState.cash_reject_reason:type_name -> exchange.v1.CashRejectReason
+	15, // 15: exchange.v1.AccountSnapshot.balances:type_name -> exchange.v1.Balances
+	14, // 16: exchange.v1.AccountSnapshot.positions:type_name -> exchange.v1.Position
+	12, // 17: exchange.v1.AccountSnapshot.open_orders:type_name -> exchange.v1.OrderState
+	4,  // 18: exchange.v1.GetOrdersRequest.filter:type_name -> exchange.v1.GetOrdersRequest.Filter
+	12, // 19: exchange.v1.GetOrdersResponse.orders:type_name -> exchange.v1.OrderState
+	21, // 20: exchange.v1.AccountUpdate.order_event:type_name -> exchange.v1.OrderEvent
+	22, // 21: exchange.v1.AccountUpdate.transfer:type_name -> exchange.v1.TransferEvent
+	15, // 22: exchange.v1.AccountUpdate.balances:type_name -> exchange.v1.Balances
+	14, // 23: exchange.v1.AccountUpdate.positions:type_name -> exchange.v1.Position
+	5,  // 24: exchange.v1.OrderEvent.kind:type_name -> exchange.v1.OrderEvent.Kind
+	12, // 25: exchange.v1.OrderEvent.order:type_name -> exchange.v1.OrderState
+	3,  // 26: exchange.v1.TransferAck.status:type_name -> exchange.v1.TransferStatus
+	15, // 27: exchange.v1.TransferAck.balances:type_name -> exchange.v1.Balances
+	6,  // 28: exchange.v1.CashOwner.PlaceOrder:input_type -> exchange.v1.PlaceOrderRequest
+	8,  // 29: exchange.v1.CashOwner.CancelOrder:input_type -> exchange.v1.CancelOrderRequest
+	10, // 30: exchange.v1.CashOwner.ModifyOrder:input_type -> exchange.v1.ModifyOrderRequest
+	13, // 31: exchange.v1.CashOwner.GetAccount:input_type -> exchange.v1.GetAccountRequest
+	17, // 32: exchange.v1.CashOwner.GetOrders:input_type -> exchange.v1.GetOrdersRequest
+	19, // 33: exchange.v1.CashOwner.SubscribeAccountUpdates:input_type -> exchange.v1.AccountUpdatesRequest
+	23, // 34: exchange.v1.CashOwner.Deposit:input_type -> exchange.v1.TransferRequest
+	23, // 35: exchange.v1.CashOwner.Withdraw:input_type -> exchange.v1.TransferRequest
+	7,  // 36: exchange.v1.CashOwner.PlaceOrder:output_type -> exchange.v1.PlaceOrderAck
+	9,  // 37: exchange.v1.CashOwner.CancelOrder:output_type -> exchange.v1.CancelOrderAck
+	11, // 38: exchange.v1.CashOwner.ModifyOrder:output_type -> exchange.v1.ModifyOrderAck
+	16, // 39: exchange.v1.CashOwner.GetAccount:output_type -> exchange.v1.AccountSnapshot
+	18, // 40: exchange.v1.CashOwner.GetOrders:output_type -> exchange.v1.GetOrdersResponse
+	20, // 41: exchange.v1.CashOwner.SubscribeAccountUpdates:output_type -> exchange.v1.AccountUpdate
+	24, // 42: exchange.v1.CashOwner.Deposit:output_type -> exchange.v1.TransferAck
+	24, // 43: exchange.v1.CashOwner.Withdraw:output_type -> exchange.v1.TransferAck
+	36, // [36:44] is the sub-list for method output_type
+	28, // [28:36] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_exchange_v1_cash_owner_proto_init() }
@@ -290,13 +2166,22 @@ func file_exchange_v1_cash_owner_proto_init() {
 		return
 	}
 	file_exchange_v1_commands_proto_init()
+	file_exchange_v1_engine_feed_proto_init()
+	file_exchange_v1_cash_owner_proto_msgTypes[0].OneofWrappers = []any{}
+	file_exchange_v1_cash_owner_proto_msgTypes[4].OneofWrappers = []any{}
+	file_exchange_v1_cash_owner_proto_msgTypes[6].OneofWrappers = []any{}
+	file_exchange_v1_cash_owner_proto_msgTypes[11].OneofWrappers = []any{}
+	file_exchange_v1_cash_owner_proto_msgTypes[14].OneofWrappers = []any{
+		(*AccountUpdate_OrderEvent)(nil),
+		(*AccountUpdate_Transfer)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_exchange_v1_cash_owner_proto_rawDesc), len(file_exchange_v1_cash_owner_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   2,
+			NumEnums:      6,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
